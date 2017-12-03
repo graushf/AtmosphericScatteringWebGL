@@ -1,0 +1,264 @@
+<html>
+	<head>
+		<title>Atmospheric Scattering - Prototype </title>
+		<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+		<script type="text/javascript" src="gl-matrix.js"></script>
+		<script type="text/javascript" src="webgl-utils.js"></script>
+		<script type="text/javascript" src="camera-3d.js"></script>
+		<script type="text/javascript" src="event-handler.js"></script>
+		<script type="text/javascript" src="geometry-generator.js"></script>
+		<script type="text/javascript" src="renderer.js"></script>
+		<script type="text/javascript" src="framebuffer-manager.js"></script>
+		<script type="text/javascript" src="ray.js"></script>
+
+		<!-- Shader code -->
+		<script id="shader-fs" type="x-shader/x-fragment">
+			precision mediump float;
+
+			uniform vec3 uColor; 
+			uniform float uOpacity;
+			
+			void main(void) {
+				gl_FragColor = vec4(uColor, uOpacity);
+			}
+		</script>
+
+		<script id="shader-vs" type="x-shader/x-vertex">
+			attribute vec3 aVertexPosition;
+
+			uniform mat4 uModelMatrix;
+			uniform mat4 uViewMatrix;
+			uniform mat4 uProjectionMatrix;
+
+			void main(void) {
+				gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+			}
+		</script>
+
+		<script id="shader-fs-framebuffer" type="x-shader/x-fragment">
+			precision mediump float;
+
+			varying vec2 vTextureCoord;
+
+			uniform sampler2D uSampler;
+			
+			uniform int uDrawBorder;
+
+			void main(void) {
+				if (uDrawBorder == 0) {
+					gl_FragColor = texture2D(uSampler, vTextureCoord);
+				} else {
+					gl_FragColor = vec4(0.46, 0.71, 0.0, 1.0);
+				}
+				//gl_FragColor = vec4(vTextureCoord, 0.0, 1.0);
+			}
+		</script>
+
+		<script id="shader-vs-framebuffer" type="x-shader/x-vertex">
+		attribute vec3 aVertexPosition;
+		attribute vec2 aTextureCoord;
+
+		varying vec2 vTextureCoord;
+
+		uniform mat4 model;
+
+		void main(void) {
+			vTextureCoord = aTextureCoord;
+			gl_Position = model * vec4(aVertexPosition, 1.0);
+		}
+		</script>
+
+
+		<script type="text/javascript">
+			//  GLOBAL VARS
+			var gl;
+			var shaderProgram;
+
+			var shaderProgramFramebuffer;
+
+			var planeRenderData;
+			var sphereRenderData; 
+
+			var mMatrix = mat4.create();
+			var pMatrix = mat4.create();
+			var vMatrix = mat4.create();
+
+			var myCamera;
+
+			var currentlyPressedKeys = {};
+
+			var radiusEarth = 3.0;
+			var radiusAtmosphere = 3.5;
+			var centerEarth = vec3.fromValues(0.0, 0.0, -5.0);
+			var centerAtmosphere = vec3.fromValues(0.0, 0.0, -5.0);
+
+			
+
+			function initGL(canvas) {
+				try {
+					gl = canvas.getContext("experimental-webgl");
+					gl.viewportWidth = canvas.width;
+					gl.viewportHeight = canvas.height;
+				} catch (e) {					
+				}
+				if (!gl) {
+					alert("Could not initialise WebGL,sorry :-(");
+				}
+			}
+
+			function getShader(gl, id) {
+				var shaderScript = document.getElementById(id);
+				if (!shaderScript) {
+					return null;
+				}
+
+				var str = "";
+				var k = shaderScript.firstChild;
+				while (k) {
+					if (k.nodeType == 3) {
+						str += k.textContent;
+					}
+					k = k.nextSibling;
+				}
+
+				var shader;
+				if (shaderScript.type == "x-shader/x-fragment") {
+					shader = gl.createShader(gl.FRAGMENT_SHADER);
+				} else if (shaderScript.type == "x-shader/x-vertex") {
+					shader = gl.createShader(gl.VERTEX_SHADER);
+				} else {
+					return null;
+				}
+
+				gl.shaderSource(shader, str);
+				gl.compileShader(shader);
+
+				if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+					alert(gl.getShaderInfoLog(shader));
+					return null;
+				}
+
+				return shader;
+			}
+
+			function initShaders() {
+				var fragmentShader = getShader(gl, "shader-fs");
+				var vertexShader = getShader(gl, "shader-vs");
+
+				shaderProgram = gl.createProgram();
+				gl.attachShader(shaderProgram, vertexShader);
+				gl.attachShader(shaderProgram, fragmentShader);
+				gl.linkProgram(shaderProgram);
+
+				if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+					alert("Could not initialise shaders");
+				}
+			}
+
+			function initShaderFramebuffer() {
+				var fragmentShader = getShader(gl, "shader-fs-framebuffer");
+				var vertexShader = getShader(gl, "shader-vs-framebuffer");
+
+				shaderProgramFramebuffer = gl.createProgram();
+				gl.attachShader(shaderProgramFramebuffer, vertexShader);
+				gl.attachShader(shaderProgramFramebuffer, fragmentShader);
+				gl.linkProgram(shaderProgramFramebuffer);
+
+				if (!gl.getProgramParameter(shaderProgramFramebuffer, gl.LINK_STATUS)) {
+					alert("Could not initialise shaders");
+				}
+			}
+
+
+
+			function init3DScene() {
+				planeRenderData = initBuffersPlane();
+				sphereRenderData = generateSphereBuffers();
+				cubeRenderData = initBuffersCube();
+			}
+
+			
+
+			function degToRad(degrees) {
+		        return degrees * Math.PI / 180;
+		    }
+
+		    function drawScene() {
+				//
+
+		    	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupScene);
+		    	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+		    	drawShapesAtCameraPosition(vec3.fromValues(4.79, 6.62, 0.16), -42.5, -145.0);
+
+
+		    	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		    	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+		    	drawShapesWithRay();
+
+		    	gl.viewport(3 * (gl.viewportWidth/4), 2*(gl.viewportHeight/4.0), gl.viewportWidth/4.0, gl.viewportHeight/4.0);
+		    	drawScreenFillingTexture(textureFramebufferSetupScene);
+		    }
+
+
+			function tick() {
+				requestAnimFrame(tick);
+
+				drawScene();
+				//drawScene();
+				//renderPlane(planeRenderData);
+				//renderSphere2(sphereRenderData);
+				
+				//renderSphere(sphereRenderData, vec3.fromValues(3.0, 0.0, -5.0), vec3.fromValues(0.2, 0.2, 0.2), vec3.fromValues(0.0, 1.0, 0.0));
+				//renderSphere(sphereRenderData, vec3.fromValues(-3.0, 0.0, -5.0), vec3.fromValues(0.2, 0.2, 0.2), vec3.fromValues(0.0, 1.0, 0.0));
+				//renderSphere(sphereRenderData, vec3.fromValues(0.0, 0.0, -8.0), vec3.fromValues(0.2, 0.2, 0.2), vec3.fromValues(0.0, 1.0, 0.0));
+				//renderSphere(sphereRenderData, vec3.fromValues(0.0, 0.0, -2.0), vec3.fromValues(0.2, 0.2, 0.2), vec3.fromValues(0.0, 1.0, 0.0));
+
+				
+
+				handleKeys();
+				//debugCamera();
+				updateRay(myCamera.Position, myCamera.Front);
+				//debugRay();
+				debugIntersectedPoints();
+				calculateDeltaTime();
+				animate();
+
+				
+			}
+
+			function webGLStart() {
+				var canvas = document.getElementById("Atmospheric-scattering-canvas");
+				initGL(canvas);
+				initShaders();
+
+				initShaderFramebuffer();
+				
+				initCamera();
+
+				updateRay(myCamera.Position, myCamera.Front);
+
+				init3DScene();
+
+				createFramebuffer();
+
+				gl.clearColor(0.0, 0.0, 0.0, 1.0);
+				gl.enable(gl.DEPTH_TEST);
+
+				document.onkeydown = handleKeyDown;
+				document.onkeyup = handleKeyUp;
+				document.onmousemove = handleMouseMove;
+
+				tick();
+			}
+		</script>
+
+	</head>
+
+	<body onload="webGLStart();">
+		<canvas id="Atmospheric-scattering-canvas" style="border: none;" width="1280" height="720"></canvas>
+	</body>
+
+</html>
