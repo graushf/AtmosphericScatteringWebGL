@@ -93,6 +93,41 @@ function generateSphereBuffers() {
 	return sphereRenderData;
 }
 
+
+
+function generateSphereBuffersAdv(radius, slices, stacks)
+{
+	var sphereGeomParams = uvSphere(radius, slices, stacks);
+
+	var sphereRenderData = [];
+	sphereRenderData.sphereVertexPositionBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexPositionBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, sphereGeomParams.vertexPositions, gl.STATIC_DRAW);
+	sphereRenderData.sphereVertexPositionBuffer.itemSize = 3;
+	sphereRenderData.sphereVertexPositionBuffer.numItems = sphereGeomParams.vertexPositions.length;
+
+	sphereRenderData.sphereVertexNormalBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexNormalBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, sphereGeomParams.vertexNormals, gl.STATIC_DRAW);
+	sphereRenderData.sphereVertexNormalBuffer.itemSize = 3;
+	sphereRenderData.sphereVertexNormalBuffer.numItems = sphereGeomParams.vertexNormals.length;
+
+	sphereRenderData.sphereTextureCoordBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereTextureCoordBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, sphereGeomParams.vertexTextureCoords, gl.STATIC_DRAW);
+	sphereRenderData.sphereTextureCoordBuffer.itemSize = 2;
+	sphereRenderData.sphereTextureCoordBuffer.numItems = sphereGeomParams.vertexTextureCoords.length;
+
+	sphereRenderData.sphereVertexIndexBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphereGeomParams.indices, gl.STATIC_DRAW);
+	sphereRenderData.sphereVertexIndexBuffer.itemSize = 1;
+	sphereRenderData.sphereVertexIndexBuffer.numItems = sphereGeomParams.indices.length;
+
+	return sphereRenderData;
+
+}
+
 function initBuffersPlane() {
 	planeRenderData.planeVertexPositionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexPositionBuffer);

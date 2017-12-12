@@ -3,7 +3,7 @@ var lastFrame = 0.0;	// Time of last frame
 
 var firstMouse = true;
 
-var enableMouse = true;
+var enableMouse = false;
 
 function calculateDeltaTime() {
 	var currentFrame = new Date().getTime();
@@ -29,19 +29,19 @@ function handleKeys() {
 	// FORWARD
 	if (currentlyPressedKeys[87]) {
 		//console.log("forward");
-		myCamera.ProcessKeyboard(0, deltaTime); // 0 is forward direction
+		m_3DCamera.ProcessKeyboard(0, deltaTime); // 0 is forward direction
 	}
 	// BACKWARD
 	if (currentlyPressedKeys[83]) {
-		myCamera.ProcessKeyboard(1, deltaTime); // 0 is forward direction
+		m_3DCamera.ProcessKeyboard(1, deltaTime); // 0 is forward direction
 	}
 	// RIGHT
 	if (currentlyPressedKeys[68]) {
-		myCamera.ProcessKeyboard(3, deltaTime); // 0 is forward direction
+		m_3DCamera.ProcessKeyboard(3, deltaTime); // 0 is forward direction
 	}
 	// LEFT
 	if (currentlyPressedKeys[65]) {
-		myCamera.ProcessKeyboard(2, deltaTime); // 0 is forward direction
+		m_3DCamera.ProcessKeyboard(2, deltaTime); // 0 is forward direction
 	}
 	if (currentlyPressedKeys[27]) {
 		enableMouse = !enableMouse;
@@ -75,7 +75,7 @@ function handleMouseMove(event) {
 		//console.log(xoffset);
 		//console.log(yoffset);
 
-		myCamera.ProcessMouseMovement(xoffset, yoffset, true);
+		m_3DCamera.ProcessMouseMovement(xoffset, yoffset, true);
 	}
 	
 }

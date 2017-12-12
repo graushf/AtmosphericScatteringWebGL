@@ -1,6 +1,7 @@
 function Camera3D() {
 	// Camera attributes
 	this.Position = [];
+	this.CQuaternion = [];
 	this.Front = [];
 	this.Up = [];
 	this.Right = [];
@@ -196,16 +197,22 @@ function Camera3D() {
         this.Yaw = yaw;
         this.Pitch = pitch;
         this.updateCameraVectors();
+    },
+
+    this.SetOrientation = function(orientation) {
+    	this.CQuaternion = orientation;
     }
 }
 
 function initCamera() {
     //Camera : function(position, WIDTH, HEIGHT);
-    myCamera = new Camera3D();
+    var myCamera = new Camera3D();
     var aux = vec3.fromValues(0.0, 0.0, 0.0);
     myCamera.CameraSetPos(aux, gl.viewportWidth, gl.viewportHeight);
     console.log(myCamera);
     console.log("bla");
+
+    return myCamera;
     //positionFocalPlane = myCamera.Position + 0.0 * myCamera.Front;
 }
 

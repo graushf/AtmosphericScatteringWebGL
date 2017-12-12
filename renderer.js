@@ -28,8 +28,8 @@ function renderSphere(sphereRenderData, translatePos, scaleAmount, color, opacit
 	mat4.identity(vMatrix);
 	mat4.identity(pMatrix);
 
-	pMatrix = myCamera.GetProjectionMatrix();
-	vMatrix = myCamera.GetViewMatrix();
+	pMatrix = m_3DCamera.GetProjectionMatrix();
+	vMatrix = m_3DCamera.GetViewMatrix();
 
 	var aux = mat4.create();
 	mat4.translate(mMatrix, mMatrix, [translatePos[0], translatePos[1], translatePos[2]]);
@@ -79,8 +79,8 @@ function renderSphereSurface(sphereRenderData, centerSphere, radiusSphere, color
 	mat4.identity(vMatrix);
 	mat4.identity(pMatrix);
 
-	pMatrix = myCamera.GetProjectionMatrix();
-	vMatrix = myCamera.GetViewMatrix();
+	pMatrix = m_3DCamera.GetProjectionMatrix();
+	vMatrix = m_3DCamera.GetViewMatrix();
 
 	var aux = mat4.create();
 	mat4.translate(mMatrix, mMatrix, [centerSphere[0], centerSphere[1], centerSphere[2]]);
@@ -108,6 +108,38 @@ function renderSphereSurface(sphereRenderData, centerSphere, radiusSphere, color
 }
 
 
+function renderSphereSurfaceAdv(sphereRenderData, shaderProgram) {
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+	shaderProgram.modelMatrixUniform = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+	shaderProgram.viewMatrixUniform = gl.getUniformLocation(shaderProgram, "uViewMatrix");
+	shaderProgram.projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjectionMatrix");
+
+	var mMatrix = mat4.create();
+	var vMatrix = mat4.create();
+	var pMatrix = mat4.create();
+
+	mat4.identity(mMatrix);
+	mat4.identity(vMatrix);
+	mat4.identity(pMatrix);
+
+	pMatrix = m_3DCamera.GetProjectionMatrix();
+	vMatrix = m_3DCamera.GetViewMatrix();
+
+	gl.uniformMatrix4fv(shaderProgram.modelMatrixUniform, false, mMatrix);
+	gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, vMatrix);
+	gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, pMatrix);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexPositionBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereRenderData.sphereVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
+	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+}
+
+
+
 function renderPlane(planeRenderData, translatePos, scaleAmount, anglesRot, axisRot, color) {
 	gl.useProgram(shaderProgram);
 
@@ -131,8 +163,8 @@ function renderPlane(planeRenderData, translatePos, scaleAmount, anglesRot, axis
 	mat4.identity(pMatrix);
 	//mat4.perspective(pMatrix, 45*(0.01745329251994329576923690768489), gl.viewportWidth/gl.viewportHeight, 0.1, 500);
 
-	pMatrix = myCamera.GetProjectionMatrix();
-	vMatrix = myCamera.GetViewMatrix();
+	pMatrix = m_3DCamera.GetProjectionMatrix();
+	vMatrix = m_3DCamera.GetViewMatrix();
 
 
 	mat4.translate(mMatrix, mMatrix, [translatePos[0], translatePos[1], translatePos[2]]);
@@ -181,10 +213,10 @@ function renderCube(cubeRenderData, bUseView, matrixTransform, translateAmount, 
 	mat4.identity(pMatrix);
 
 	if (bUseView) {
-		vMatrix = myCamera.GetViewMatrix();
+		vMatrix = m_3DCamera.GetViewMatrix();
 	}
 
-	pMatrix = myCamera.GetProjectionMatrix();
+	pMatrix = m_3DCamera.GetProjectionMatrix();
 
 	//mat4.translate(mMatrix, mMatrix, myCamera.Position);
 	mat4.translate(mMatrix, mMatrix, [translateAmount[0], translateAmount[1], translateAmount[2]]);
@@ -234,12 +266,12 @@ function renderRay(bUseView, matrixTransform) {
 	mat4.identity(pMatrix);
 
 	if (bUseView) {
-		vMatrix = myCamera.GetViewMatrix();
+		vMatrix = m_3DCamera.GetViewMatrix();
 		//mat4.multiply(vMatrix, vMatrix, matrixTransform);
 		//mat4.multiply(vMatrix, matrixTransform, vMatrix);
 	}
 
-	pMatrix = myCamera.GetProjectionMatrix();
+	pMatrix = m_3DCamera.GetProjectionMatrix();
 
 	mat4.translate(mMatrix, mMatrix, [0.0, 0.0, -1.0]);
 	mat4.rotate(mMatrix, mMatrix, degToRad(90.0), [1.0, 0.0, 0.0])
@@ -315,24 +347,36 @@ function drawShapesWithRay() {
 
 
 function drawShapesAtCameraPosition(positionCamera, PitchCamera, YawCamera) {
-	var auxPositionCamera = myCamera.Position;
-	var auxPitchCamera = myCamera.Pitch;
-	var auxYawCamera = myCamera.Yaw;
+	var auxPositionCamera = m_3DCamera.Position;
+	var auxPitchCamera = m_3DCamera.Pitch;
+	var auxYawCamera = m_3DCamera.Yaw;
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	var matViewAux = mat4.create();
-	matViewAux = myCamera.GetViewMatrix();
+	matViewAux = m_3DCamera.GetViewMatrix();
 	var aux = matViewAux;
 
-	myCamera.SetPositionAndDirectionCamera(positionCamera, PitchCamera, YawCamera);
+	m_3DCamera.SetPositionAndDirectionCamera(positionCamera, PitchCamera, YawCamera);
 	drawShapes();
 	// Rendering Ray 
 	renderCube(cubeRenderData, true, matViewAux, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.01, 0.01, 50.0), vec3.fromValues(1.0, 0.0, 0.0));
 	// Rendering Camera Position
 	renderCube(cubeRenderData, true, matViewAux, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.1, 0.1, 0.1), vec3.fromValues(0.0, 1.0, 0.0));
 
-	myCamera.SetPositionAndDirectionCamera(auxPositionCamera, auxPitchCamera, auxYawCamera);
+	m_3DCamera.SetPositionAndDirectionCamera(auxPositionCamera, auxPitchCamera, auxYawCamera);
 }
+
+function renderPlanet(planetGeomRenderData, shaderProgram) {
+	//renderSphereSurface(planetGeomRenderData, vec3.fromValues(0.0, 0.0, 0.0), 1.0, vec3.fromValues(1.0, 0.0, 0.0), 1.0);
+	renderSphereSurfaceAdv(planetGeomRenderData, shaderProgram);
+}
+
+function renderAtmosphere(atmosphereGeomRenderData, shaderProgram) {
+	//renderSphereSurface(atmosphereGeomRenderData, vec3.fromValues(0.0, 0.0, 0.0), 1.0, vec3.fromValues(0.0, 0.0, 1.0), 0.5);
+	renderSphereSurfaceAdv(atmosphereGeomRenderData, shaderProgram);
+
+}
+
 
 function drawScreenFillingTexture(texture) {
 
