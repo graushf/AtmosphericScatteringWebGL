@@ -13,6 +13,7 @@
 		<script type="text/javascript" src="ray.js"></script>
 		<script type="text/javascript" src="game-engine.js"></script>
 		<script type="text/javascript" src="shader.js"></script>
+		<script type="text/javascript" src="texture.js"></script>
 
 		<!-- Shader code -->
 		<script id="shader-fs" type="x-shader/x-fragment">
@@ -57,6 +58,36 @@
 			}
 		</script>
 
+		<script id="shader-fs-framebuffer-HDR" type="x-shader/x-fragment">
+			precision mediump float;
+
+			varying vec2 vTextureCoord;
+
+			uniform sampler2D uSampler;
+			
+			uniform int uDrawBorder;
+
+			uniform float fHdrExposure;
+
+			void main(void) {
+				if (uDrawBorder == 0) {
+					const float gamma = 2.0;
+					vec4 col_tex = texture2D(uSampler, vTextureCoord);
+					vec3 col = texture2D(uSampler, vTextureCoord).xyz;
+					//col = 1.0 - exp(-col * fHdrExposure);
+					col = 1.0 - exp(col * -fHdrExposure);
+					//col = vec3(1.0, 0.0, 0.0);
+					//col = pow(col, vec3(1.0 / gamma));
+					gl_FragColor = vec4(col, 1.0);
+					//gl_FragColor = col_tex;
+
+				} else {
+					gl_FragColor = vec4(0.46, 0.71, 0.0, 1.0);
+				}
+				//gl_FragColor = vec4(vTextureCoord, 0.0, 1.0);
+			}
+		</script>
+
 		<script id="shader-vs-framebuffer" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
 			attribute vec2 aTextureCoord;
@@ -88,7 +119,7 @@
 
 		<script id="SpaceFromSpace-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
-			attribute vec2 aTextureCoord;
+			//attribute vec2 aTextureCoord;
 
 
 			varying vec2 vTextureCoord;
@@ -146,7 +177,7 @@
 				gl_FrontSecondaryColor.rgb = exp(-fScatter * (v3InvWavelength * fKr4PI + fKm4PI));
 
 				gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
-				vTextureCoord = aTextureCoord;
+				//vTextureCoord = aTextureCoord;
 			}
 		</script>
 
@@ -155,14 +186,25 @@
 			precision mediump float;
 			//uniform sampler2D s2Tex1;
 			//uniform sampler2D s2Tex2;
+			uniform sampler2D uSamplerTexture;
+
+			//varying vec2 vTextureCoord;
+
 			varying vec3 primaryColor;
 			varying vec3 secondaryColor;
 
+
 			void main(void) 
 			{
-				gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); return;
+				//gl_FragColor = texture2D(uSamplerTexture, vTextureCoord); 
+				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); return;
+				//gl_FragColor = vec4(vTextureCoord.xy, 0.0, 1.0); return;
 				gl_FragColor = vec4(vec3(primaryColor + 0.25 * secondaryColor).xyz, 1.0);
-				//gl_FragColor = gl_Color + texture2D(s2Tex1, gl_TexCoord[0].st) * texture2D(s2Tex2, gl_TexCoord[1].st) * gl_SecondaryColor;
+				//gl_FragColor.xyz = primaryColor + texture2D(uSamplerTexture, vTextureCoord).xyz * texture2D(uSamplerTexture, vTextureCoord).xyz * secondaryColor;
+				//gl_FragColor.xyz = primaryColor.xyz +texture2D(uSamplerTexture, vTextureCoord).xyz + texture2D(uSamplerTexture, vTextureCoord).xyz* secondaryColor;
+				gl_FragColor.w = 1.0;
+
+				//gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
 			}
 
 		</script>
@@ -170,7 +212,7 @@
 
 		<script id="GroundFromSpace-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
-			attribute vec2 aTextureCoord;
+			//attribute vec2 aTextureCoord;
 
 			varying vec2 vTextureCoord;
 			varying vec3 primaryColor;
@@ -256,6 +298,7 @@
 				secondaryColor.rgb = v3Attenuate;
 
 				gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+				//vTextureCoord = aTextureCoord;
 				//glTexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
 				//glTexCoord[1] = gl_TextureMatrix[1] * gl_MultiTexCoord1;
 
@@ -265,11 +308,13 @@
 		<script id="GroundFromAtmosphere-fs" type="x-shader/x-fragment">
 			precision mediump float;
 
+			//varying vec2 vTextureCoord;
+
 			varying vec3 primaryColor;
 			varying vec3 secondaryColor;
 
 			void main() {
-				gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); return;
+				//gl_FragColor = vec4(vTextureCoord.xy, 0.0, 1.0); return;
 				gl_FragColor = vec4(primaryColor + 0.25 * secondaryColor, 1.0);
 			}
 
@@ -277,7 +322,7 @@
 
 		<script id="GroundFromAtmosphere-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
-			attribute vec2 aTextureCoord;
+			//attribute vec2 aTextureCoord;
 
 			varying vec2 vTextureCoord;
 			varying vec3 primaryColor;
@@ -355,6 +400,8 @@
 				secondaryColor.rgb = v3Attenuate;
 
 				gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+				//vTextureCoord = aTextureCoord;
+
 			}
 
 		</script>	
@@ -374,14 +421,17 @@
 
 			void main(void)
 			{
-				gl_FragColor = vec4(debugColor, 1.0); return;
+				//gl_FragColor = vec4(debugColor, 1.0); return;
 				//gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); return;
 				float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
 				float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
 				gl_FragColor.xyz = frontPrimaryColor + fMiePhase * frontSecondaryColor;
 				gl_FragColor.a = gl_FragColor.b;
 
-				gl_FragColor = vec4(v3Direction, 1.0);
+				//gl_FragColor = vec4(v3Direction, 1.0);
+				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+
+				//gl_FragColor = vec4(debugColor, 1.0);
 			}
 		</script>
 
@@ -389,7 +439,7 @@
 			precision mediump float;
 
 			attribute vec3 aVertexPosition;
-			attribute vec2 aTextureCoord;
+			//attribute vec2 aTextureCoord;
 
 			varying vec3 v3Direction;
 			varying vec3 frontPrimaryColor;
@@ -435,7 +485,7 @@
 				float fFar = length(v3Ray);
 				v3Ray /= fFar;
 				
-				debugColor = normalize(v3Ray);
+				debugColor = vec3(1.0, 0.0, 0.0);
 
 
 				// Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
@@ -475,7 +525,7 @@
 
 
 				}
-				debugColor = v3FrontColor;
+				debugColor = v3FrontColor * (v3InvWavelength * fKrESun);
 
 				// Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
 				frontSecondaryColor.rgb = v3FrontColor * fKmESun;
@@ -498,14 +548,43 @@
 
 			varying vec3 debugColor;
 
+			float GetMiePhase(float fCos, float fCos2, float g, float g2);
+			float GetRayleighPhase(float fCos2);
+
 			void main(void)
 			{
+
 				//gl_FragColor = vec4(0.98, 0.54, 0.035, 1.0); return;
 				float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
-				float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
-				gl_FragColor.xyz = frontColor + fMiePhase * frontSecondaryColor;
-				gl_FragColor.a = gl_FragColor.b;
-				gl_FragColor = vec4(debugColor, 1.0);
+				float fCos2 = fCos*fCos;
+
+				vec3 col = GetRayleighPhase(fCos2) *  frontColor + GetMiePhase(fCos, fCos2, g, g2) * frontSecondaryColor;
+				vec3 aux1 = GetRayleighPhase(fCos2) *  frontColor;
+				vec3 aux2 = GetMiePhase(fCos, fCos2, g, g2) * frontSecondaryColor;
+				vec3 aux3 = vec3(fCos2, fCos2, fCos2);
+				vec3 aux4 = vec3(fCos, fCos, fCos);
+
+				vec3 aux5 = vec3(abs(g2), 0.0, 0.0);
+				vec3 aux6 = vec3( GetMiePhase(fCos, fCos2, g, g2),  GetMiePhase(fCos, fCos2, g, g2),  GetMiePhase(fCos, fCos2, g, g2));
+
+				//float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
+				//gl_FragColor.xyz = frontColor + fMiePhase * frontSecondaryColor;
+				//gl_FragColor.a = gl_FragColor.b;
+				//gl_FragColor = vec4(frontSecondaryColor, 1.0);
+				//gl_FragColor = vec4(aux1, 1.0);
+				gl_FragColor = vec4(col, 1.0);
+				
+			}
+
+			float GetMiePhase(float fCos, float fCos2, float g, float g2) 
+			{
+				return 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos2) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
+				//return(1.0);
+			}
+
+			float GetRayleighPhase(float fCos2) 
+			{
+				return 0.75 + 0.75 * fCos2;
 			}
 
 
@@ -516,7 +595,7 @@
 			precision mediump float;
 
 			attribute vec3 aVertexPosition;
-			attribute vec2 aTextureCoord;
+			//attribute vec2 aTextureCoord;
 
 			varying vec3 v3Direction;
 			varying vec3 frontColor;
@@ -559,29 +638,31 @@
 			void main(void) 
 			{
 				// Get the ray from the camera to the vertex and its length
-				vec3 v3Pos = aVertexPosition.xyz;
+				vec4 aux = uModelMatrix * vec4(aVertexPosition, 1.0);
+				vec3 v3Pos = aux.xyz;
 				vec3 v3Ray = v3Pos - v3CameraPos;
 				float fFar = length(v3Ray);
 				v3Ray /= fFar;
+				//debugColor = v3Ray;
 		
 				// Calculate the ray's starting position, then calculate its scattering offset
 				vec3 v3Start = v3CameraPos;
 				float fHeight = length(v3Start);
 				float fDepth = exp(fScaleOverScaleDepth * (fInnerRadius - fCameraHeight));
-				debugColor = vec3(fDepth);
+				//debugColor = vec3(fDepth);
 				float fStartAngle = dot(v3Ray, v3Start) / fHeight;
 				//debugColor = vec3(fStartAngle);
 				float fStartOffset = fDepth * scale(fStartAngle);
 
-
 				// Initialize the scattering loop variables
 				float fSampleLength = fFar / fSamples;
+				//debugColor = vec3(fSampleLength);
 				float fScaledLength = fSampleLength * fScale;			
 				vec3 v3SampleRay = v3Ray * fSampleLength;
 
 				vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5;
 				//vec3 v3SamplePoint = v3Start + v3SampleRay * 1.0;
-				debugColor = vec3(0);
+				//debugColor = vec3(0);
 
 				// Now loop through the sample rays
 				vec3 v3FrontColor = vec3(0.0, 0.0, 0.0);
@@ -613,19 +694,14 @@
 					vec3 v3Attenuate = exp(-fScatter * (v3InvWavelength * fKr4PI + fKm4PI));
 					v3FrontColor += v3Attenuate * (fDepth * fScaledLength);
 					v3SamplePoint += v3SampleRay;
-
-					if (i == 0) {
-						//debugColor += v3FrontColor * (v3InvWavelength * fKrESun);
-						debugColor = v3FrontColor * (v3InvWavelength * fKrESun);
-					}
-					
-					
 				}
+
+				debugColor = v3FrontColor * (v3InvWavelength * fKrESun);
 
 				// Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
 				frontSecondaryColor.rgb = v3FrontColor * fKmESun;
 				frontColor.rgb = v3FrontColor * (v3InvWavelength * fKrESun);
-				debugColor = frontSecondaryColor;
+				//debugColor = frontSecondaryColor;
 
 				
 				gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
@@ -662,6 +738,7 @@
 			var centerEarth = vec3.fromValues(0.0, 0.0, -5.0);
 			var centerAtmosphere = vec3.fromValues(0.0, 0.0, -5.0);
 
+			var DEBUGTEXTURE;
 			
 
 			function initGL(canvas) {
@@ -726,7 +803,7 @@
 			}
 
 			function initShaderFramebuffer() {
-				var fragmentShader = getShader(gl, "shader-fs-framebuffer");
+				var fragmentShader = getShader(gl, "shader-fs-framebuffer-HDR");
 				var vertexShader = getShader(gl, "shader-vs-framebuffer");
 
 				shaderProgramFramebuffer = gl.createProgram();
@@ -744,6 +821,8 @@
 				planeRenderData = initBuffersPlane();
 				sphereRenderData = generateSphereBuffers();
 				cubeRenderData = initBuffersCube();
+
+				DEBUGTEXTURE = loadTexture("http://localhost/AtmosphericScatteringWebGL/nature.jpg");
 			}
 			
 
@@ -769,14 +848,55 @@
 		    	drawScreenFillingTexture(textureFramebufferSetupScene);
 		    }
 
+		    function drawScene2() {
+				//
+
+		    	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupScene);
+		    	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+		    	//RenderFrameAtmosphere(0.0);
+
+
+		    	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		    	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+		    	//drawShapesAtCameraPosition(vec3.fromValues(4.79, 6.62, 0.16), -42.5, -145.0);
+
+		    	RenderFrameAtmosphere(0.0);
+		    	//drawShapesWithRay();
+
+		    	//RenderFrameAtmosphere(0.0);
+
+		    	gl.viewport(3 * (gl.viewportWidth/4), 2*(gl.viewportHeight/4.0), gl.viewportWidth/4.0, gl.viewportHeight/4.0);
+		    	drawScreenFillingTexture(DEBUGTEXTURE);
+		    }
+
+		    function renderLoop() {
+		    	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupSceneHDR);
+		    	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+		    	RenderFrameAtmosphere(0.0);
+
+		    	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		    	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+		    	
+		    	//RenderFrameAtmosphere(0.0);
+		    	//gl.viewport(3 * (gl.viewportWidth/4), 2*(gl.viewportHeight/4.0), gl.viewportWidth/4.0, gl.viewportHeight/4.0);
+		    	//drawScreenFillingTexture(textureFramebufferSetupSceneHDR);
+		    	drawScreenFillingTextureHDR(textureFramebufferSetupSceneHDR)
+		    	//drawScreenFillingTexture(textureFramebufferSetupScene);
+		    }
+
+
 
 			function tick() {
 				requestAnimFrame(tick);
 
 				//renderFrame();
-				RenderFrameAtmosphere(0.0);
+				//RenderFrameAtmosphere(0.0);
+				renderLoop();
 
-				//drawScene();
+				//drawScene2();
 				//drawScene();
 				//renderPlane(planeRenderData);
 				//renderSphere2(sphereRenderData);
@@ -813,9 +933,10 @@
 
 				init3DScene();
 
-				createFramebuffer();
+				//createFramebuffer();
+				createFramebufferHDR();
 
-				gl.clearColor(0.0, 1.0, 0.0, 1.0);
+				gl.clearColor(0.0, 0.0, 0.0, 1.0);
 				gl.enable(gl.DEPTH_TEST);
 
 				document.onkeydown = handleKeyDown;

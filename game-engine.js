@@ -43,6 +43,11 @@ var m_pBuffer;
 var planetGeomRenderData;
 var atmosphereGeomRenderData;
 
+var texturePlanet;
+
+var pGroundShader;
+var pSkyShader;
+
 function initGameEngine() {
 	
 	gl.enable(gl.DEPTH_TEST);
@@ -52,22 +57,28 @@ function initGameEngine() {
 	m_3DCamera = initCamera();
 
 	//0.8422417044639587 8.989599227905273 4.677064418792725
-	m_3DCamera.CameraSetPos(vec3.fromValues(0.8422, 8.9895, 4.677), gl.viewportWidth, gl.viewportHeight);
+	//m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 0.0, 50.0), gl.viewportWidth, gl.viewportHeight);
+	m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 10.0, 1.0), gl.viewportWidth, gl.viewportHeight);
 
 	var qOrientation = quat.fromValues(0.0, 0.0, 0.0, 1.0);
 	quat.normalize(qOrientation, qOrientation);
 
 	m_vLight = vec3.fromValues(0.0, 0.0, 1000.0);
+	//m_vLight = vec3.fromValues(0.0, 700.0, 700.0);
+	//m_vLight = vec3.fromValues(1000.0, 0.0, 0.0);
 	var length = vec3.length(m_vLight);
 	m_vLightDirection = vec3.create();
 	vec3.scale(m_vLightDirection, m_vLight, 1/length);
+
+	//m_vLight = vec3.fromValues(0.0, -0.9, -0.5);
 
 	 m_Samples = 3;
 	 m_Kr = 0.0025;
 	 m_Kr4PI = m_Kr * 4.0 * Math.PI;
 	 m_Km = 0.0010;
-	 m_Km4PI = m_Kr * 4.0 * Math.PI;
-	 m_ESun = 20.0;
+	 m_Km4PI = m_Km * 4.0 * Math.PI;
+	 //m_ESun = 20.0;
+	 m_ESun = 15.0;
 	 m_g = -0.990;
 	 m_fExposure = 2.0;
 
@@ -88,7 +99,7 @@ function initGameEngine() {
 
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
 	 planetGeomRenderData = generateSphereBuffersAdv(m_fInnerRadius, 100, 50);
-	 atmosphereGeomRenderData = generateSphereBuffersAdv(m_fOuterRadius, 100, 50);
+	 atmosphereGeomRenderData = generateSphereBuffersAdv(m_fOuterRadius, 300, 150);
 
 	 // CREATE SHADERS;
 	 console.log("Creating Shaders");
@@ -99,6 +110,7 @@ function initGameEngine() {
 	 // INIT MOON PIXEL BUFFER
 
 	 // INIT EARTH PIXEL BUFFER
+	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/earthmap1k.jpg");
 }
 
 function renderFrame() {
@@ -124,13 +136,11 @@ function renderFrame() {
 function RenderFrameAtmosphere(nMilliseconds)
 {
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 	// Determine the FPS
 
 	// Move the camera
 	// handle input
-
-	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 	
 
 	var mViewMatrix = mat4.create();
@@ -182,7 +192,6 @@ function RenderFrameAtmosphere(nMilliseconds)
 	// 	// dissableProgram
 	// }
 
-	var pGroundShader;
 	if (vec3.length(vCamera) >= m_fOuterRadius)
 	{
 		pGroundShader = m_shGroundFromSpace;
@@ -212,17 +221,33 @@ function RenderFrameAtmosphere(nMilliseconds)
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g"), m_g);
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g2"), Math.pow(m_g, 2));
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "s2Test"), 0);
+
+		//console.log(Math.pow(m_fOuterRadius, 2.0));
+		//console.log(m_fInnerRadius);
+		//console.log(Math.pow(m_fInnerRadius, 2.0));
+		//console.log("m_Kr-Esun: "+ m_Kr * m_ESun);
+		//console.log("fKmESun: "+ m_Km * m_ESun);
+		//console.log("fKr4PI: "+ m_Kr4PI);
+		//console.log("fKm4PI: "+  m_Km4PI);
+		//console.log("fScale: "+  1.0/(m_fOuterRadius - m_fInnerRadius));
+		//console.log("fScaleDepth: "+  m_fRayleighScaleDepth);
+		//console.log("fScaleOverScaleDepth: "+  (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
+		//console.log("g: "+  m_g);
+		console.log("g2: "+  Math.pow(m_g, 2));
 	}
 
-	renderPlanet(planetGeomRenderData, pGroundShader);
+	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
 
 	// SPHERE CREATION
 	// Disable groundShader
 
-	var pSkyShader;
 	if (vec3.length(vCamera) >= m_fOuterRadius) {
+		gl.enable(gl.CULL_FACE);
+
 		pSkyShader = m_shSkyFromSpace;
 	} else {
+		gl.disable(gl.CULL_FACE);
+		m_ESun = 20.0;
 		pSkyShader = m_shSkyFromAtmosphere;
 	}
 
@@ -252,11 +277,13 @@ function RenderFrameAtmosphere(nMilliseconds)
 	// TRY SETTING THE MOON AS LIGHT SOURCE
 
 	gl.frontFace(gl.CW);
-	// gl.enable(gl.BLEND);
+	//gl.enable(gl.BLEND);
 	gl.blendFunc(gl.ONE, gl.ONE);
 
 	// Render Sphere ATMOSPHERE
  	renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
+
+ 	gl.frontFace(gl.CCW);
 
 }
 

@@ -138,6 +138,47 @@ function renderSphereSurfaceAdv(sphereRenderData, shaderProgram) {
 	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
+function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, texture) {
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+	shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+	gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+	shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSamplerTexture");
+
+	shaderProgram.modelMatrixUniform = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+	shaderProgram.viewMatrixUniform = gl.getUniformLocation(shaderProgram, "uViewMatrix");
+	shaderProgram.projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjectionMatrix");
+
+	var mMatrix = mat4.create();
+	var vMatrix = mat4.create();
+	var pMatrix = mat4.create();
+
+	mat4.identity(mMatrix);
+	mat4.identity(vMatrix);
+	mat4.identity(pMatrix);
+
+	pMatrix = m_3DCamera.GetProjectionMatrix();
+	vMatrix = m_3DCamera.GetViewMatrix();
+
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.uniform1i(shaderProgram.samplerUniform, 0);
+
+	gl.uniformMatrix4fv(shaderProgram.modelMatrixUniform, false, mMatrix);
+	gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, vMatrix);
+	gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, pMatrix);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexPositionBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereRenderData.sphereVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereTextureCoordBuffer);
+	gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sphereRenderData.sphereTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
+	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+}
 
 
 function renderPlane(planeRenderData, translatePos, scaleAmount, anglesRot, axisRot, color) {
@@ -246,6 +287,8 @@ function renderCube(cubeRenderData, bUseView, matrixTransform, translateAmount, 
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeRenderData.cubeVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, cubeRenderData.cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+	gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 }
 
 
@@ -366,8 +409,11 @@ function drawShapesAtCameraPosition(positionCamera, PitchCamera, YawCamera) {
 	m_3DCamera.SetPositionAndDirectionCamera(auxPositionCamera, auxPitchCamera, auxYawCamera);
 }
 
-function renderPlanet(planetGeomRenderData, shaderProgram) {
+function renderPlanet(planetGeomRenderData, shaderProgram, texture) {
 	//renderSphereSurface(planetGeomRenderData, vec3.fromValues(0.0, 0.0, 0.0), 1.0, vec3.fromValues(1.0, 0.0, 0.0), 1.0);
+	//renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, texture)
+
+
 	renderSphereSurfaceAdv(planetGeomRenderData, shaderProgram);
 }
 
@@ -379,11 +425,33 @@ function renderAtmosphere(atmosphereGeomRenderData, shaderProgram) {
 
 
 function drawScreenFillingTexture(texture) {
+	//gl.disableVertexAttribArray(pGroundShader.vertexPositionAttribute);
+	//gl.disableVertexAttribArray(pGroundShader.textureCoordAttribute);
+	// gl.disableVertexAttribArray(0);
+	// gl.bindBuffer(gl.ARRAY_BUFFER, null);
+	// gl.vertexAttribPointer(0, planeRenderData.planeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, null);
+	// var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// console.log(a);
+	// console.log(b);
+	// console.log(c);
+	// console.log(d);
 
 	gl.useProgram(shaderProgramFramebuffer);
 
 	shaderProgramFramebuffer.vertexPositionAttribute = gl.getAttribLocation(shaderProgramFramebuffer, "aVertexPosition");
 	gl.enableVertexAttribArray(shaderProgramFramebuffer.vertexPositionAttribute);
+
+	// var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// console.log(a);
+	// console.log(b);
+	// console.log(c);
+	// console.log(d);
 
 	shaderProgramFramebuffer.textureCoordAttribute = gl.getAttribLocation(shaderProgramFramebuffer, "aTextureCoord");
 	gl.enableVertexAttribArray(shaderProgramFramebuffer.textureCoordAttribute);
@@ -405,6 +473,17 @@ function drawScreenFillingTexture(texture) {
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.uniform1i(shaderProgramFramebuffer.samplerUniform, 0);
 
+	// var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	// console.log(a);
+	// console.log(b);
+	// console.log(c);
+	// console.log(d);
+
+
+
 
 	mat4.identity(mMatrix);
 	var aux = mat4.create();
@@ -425,6 +504,56 @@ function drawScreenFillingTexture(texture) {
 	gl.uniformMatrix4fv(shaderProgramFramebuffer.modelMatrixUniform, false, mMatrix);
 
 	gl.uniform1i(gl.getUniformLocation(shaderProgramFramebuffer, "uDrawBorder"), 0);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, planeRenderData.planeVertexIndexBuffer);
+	gl.drawElements(gl.TRIANGLES, planeRenderData.planeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+	gl.enable(gl.DEPTH_TEST);
+}
+
+
+function drawScreenFillingTextureHDR(texture) {
+	
+	gl.useProgram(shaderProgramFramebuffer);
+
+	shaderProgramFramebuffer.vertexPositionAttribute = gl.getAttribLocation(shaderProgramFramebuffer, "aVertexPosition");
+	gl.enableVertexAttribArray(shaderProgramFramebuffer.vertexPositionAttribute);
+
+	shaderProgramFramebuffer.textureCoordAttribute = gl.getAttribLocation(shaderProgramFramebuffer, "aTextureCoord");
+	gl.enableVertexAttribArray(shaderProgramFramebuffer.textureCoordAttribute);
+
+	shaderProgramFramebuffer.samplerUniform = gl.getUniformLocation(shaderProgramFramebuffer, "uSampler");
+
+	shaderProgramFramebuffer.modelMatrixUniform = gl.getUniformLocation(shaderProgramFramebuffer, "model");
+
+	shaderProgramFramebuffer.fExposureUniform = gl.getUniformLocation(shaderProgramFramebuffer, "fHdrExposure");
+
+	//gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	gl.disable(gl.DEPTH_TEST);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexPositionBuffer);
+	gl.vertexAttribPointer(shaderProgramFramebuffer.vertexPositionAttribute, planeRenderData.planeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexTextureCoordBuffer);
+	gl.vertexAttribPointer(shaderProgramFramebuffer.textureCoordAttribute, planeRenderData.planeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0 , 0);
+
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.uniform1i(shaderProgramFramebuffer.samplerUniform, 0);
+
+
+
+
+	mat4.identity(mMatrix);
+	var aux = mat4.create();
+
+	mat4.fromScaling(aux, [1.0, 1.0, 1.0]);
+	mat4.multiply(mMatrix, mMatrix, aux);
+
+	gl.uniformMatrix4fv(shaderProgramFramebuffer.modelMatrixUniform, false, mMatrix);
+
+	gl.uniform1i(gl.getUniformLocation(shaderProgramFramebuffer, "uDrawBorder"), 0);
+	gl.uniform1f(shaderProgramFramebuffer.fExposureUniform, exposureQuantity);
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, planeRenderData.planeVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, planeRenderData.planeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);

@@ -3,7 +3,9 @@ var lastFrame = 0.0;	// Time of last frame
 
 var firstMouse = true;
 
-var enableMouse = false;
+var enableMouse = true;
+
+var exposureQuantity = 0.8;
 
 function calculateDeltaTime() {
 	var currentFrame = new Date().getTime();
@@ -49,6 +51,14 @@ function handleKeys() {
 
 	if (currentlyPressedKeys[82]) {
 		calculateIntersectionSphere();
+	}
+
+	if (currentlyPressedKeys[79]) {
+		exposureQuantity -= 0.01;
+	}
+
+	if (currentlyPressedKeys[80]) {
+		exposureQuantity += 0.01;
 	}
 }
 
