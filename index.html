@@ -121,7 +121,6 @@
 			attribute vec3 aVertexPosition;
 			//attribute vec2 aTextureCoord;
 
-
 			varying vec2 vTextureCoord;
 
 			uniform mat4 uModelMatrix;
@@ -193,7 +192,6 @@
 			varying vec3 primaryColor;
 			varying vec3 secondaryColor;
 
-
 			void main(void) 
 			{
 				//gl_FragColor = texture2D(uSamplerTexture, vTextureCoord); 
@@ -204,7 +202,7 @@
 				//gl_FragColor.xyz = primaryColor.xyz +texture2D(uSamplerTexture, vTextureCoord).xyz + texture2D(uSamplerTexture, vTextureCoord).xyz* secondaryColor;
 				gl_FragColor.w = 1.0;
 
-				//gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+				//gl_FragColor = vec4(vTextureCoord, 0.0, 1.0);
 			}
 
 		</script>
@@ -214,7 +212,7 @@
 			attribute vec3 aVertexPosition;
 			//attribute vec2 aTextureCoord;
 
-			varying vec2 vTextureCoord;
+			//varying vec2 vTextureCoord;
 			varying vec3 primaryColor;
 			varying vec3 secondaryColor;
 

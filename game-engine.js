@@ -57,8 +57,8 @@ function initGameEngine() {
 	m_3DCamera = initCamera();
 
 	//0.8422417044639587 8.989599227905273 4.677064418792725
-	//m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 0.0, 50.0), gl.viewportWidth, gl.viewportHeight);
-	m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 10.0, 1.0), gl.viewportWidth, gl.viewportHeight);
+	m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 0.0, 50.0), gl.viewportWidth, gl.viewportHeight); // CAMERA POSITION ON SPACE
+	//m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 10.0, 1.0), gl.viewportWidth, gl.viewportHeight); // CAMERA POSITION ON EARTH
 
 	var qOrientation = quat.fromValues(0.0, 0.0, 0.0, 1.0);
 	quat.normalize(qOrientation, qOrientation);
@@ -98,8 +98,12 @@ function initGameEngine() {
 	 m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth);
 
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
-	 planetGeomRenderData = generateSphereBuffersAdv(m_fInnerRadius, 100, 50);
-	 atmosphereGeomRenderData = generateSphereBuffersAdv(m_fOuterRadius, 300, 150);
+	 //planetGeomRenderData = generateSphereBuffersAdv(m_fInnerRadius, 100, 50);
+	 //atmosphereGeomRenderData = generateSphereBuffersAdv(m_fOuterRadius, 300, 150);
+	 planetGeomRenderData = generateSphereBuffersUpgraded(m_fInnerRadius, 30, 30);
+	 atmosphereGeomRenderData = generateSphereBuffersUpgraded(m_fOuterRadius, 30, 30);
+
+
 
 	 // CREATE SHADERS;
 	 console.log("Creating Shaders");
@@ -194,6 +198,7 @@ function RenderFrameAtmosphere(nMilliseconds)
 
 	if (vec3.length(vCamera) >= m_fOuterRadius)
 	{
+	 	gl.frontFace(gl.CW);
 		pGroundShader = m_shGroundFromSpace;
 	} else {
 		pGroundShader = m_shGroundFromAtmosphere;
@@ -237,6 +242,8 @@ function RenderFrameAtmosphere(nMilliseconds)
 	}
 
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
+ 	gl.frontFace(gl.CCW);
+
 
 	// SPHERE CREATION
 	// Disable groundShader
@@ -276,13 +283,13 @@ function RenderFrameAtmosphere(nMilliseconds)
 	console.log("v3CameraPos: "+vCamera[0] + " " +vCamera[1] + " " + vCamera[2]);
 	// TRY SETTING THE MOON AS LIGHT SOURCE
 
-	gl.frontFace(gl.CW);
+	gl.frontFace(gl.CCW);
 	//gl.enable(gl.BLEND);
 	gl.blendFunc(gl.ONE, gl.ONE);
 
 	// Render Sphere ATMOSPHERE
  	renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
-
+	gl.frontFace(gl.CW);
  	gl.frontFace(gl.CCW);
 
 }
