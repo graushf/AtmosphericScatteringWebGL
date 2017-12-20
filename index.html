@@ -187,21 +187,29 @@
 			//uniform sampler2D s2Tex2;
 			uniform sampler2D uSamplerTexture;
 
-			//varying vec2 vTextureCoord;
+			varying vec2 vTextureCoord;
 
 			varying vec3 primaryColor;
 			varying vec3 secondaryColor;
 
 			void main(void) 
 			{
+				vec2 uv = vec2(vTextureCoord.x, 1.0 - vTextureCoord.y);
 				//gl_FragColor = texture2D(uSamplerTexture, vTextureCoord); 
 				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); return;
 				//gl_FragColor = vec4(vTextureCoord.xy, 0.0, 1.0); return;
 				gl_FragColor = vec4(vec3(primaryColor + 0.25 * secondaryColor).xyz, 1.0);
+				vec3 colorTexture = 1.0 * texture2D(uSamplerTexture, uv).xyz;
+				gl_FragColor.xyz = primaryColor + 1.2 * colorTexture * secondaryColor;
+				//gl_FragColor.xyz = colorTexture;
+
+
 				//gl_FragColor.xyz = primaryColor + texture2D(uSamplerTexture, vTextureCoord).xyz * texture2D(uSamplerTexture, vTextureCoord).xyz * secondaryColor;
 				//gl_FragColor.xyz = primaryColor.xyz +texture2D(uSamplerTexture, vTextureCoord).xyz + texture2D(uSamplerTexture, vTextureCoord).xyz* secondaryColor;
 				gl_FragColor.w = 1.0;
 
+
+				//gl_FragColor = texture2D(uSamplerTexture, uv);
 				//gl_FragColor = vec4(vTextureCoord, 0.0, 1.0);
 			}
 
@@ -210,9 +218,9 @@
 
 		<script id="GroundFromSpace-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
-			//attribute vec2 aTextureCoord;
+			attribute vec2 aTextureCoord;
 
-			//varying vec2 vTextureCoord;
+			varying vec2 vTextureCoord;
 			varying vec3 primaryColor;
 			varying vec3 secondaryColor;
 
@@ -296,7 +304,7 @@
 				secondaryColor.rgb = v3Attenuate;
 
 				gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
-				//vTextureCoord = aTextureCoord;
+				vTextureCoord = aTextureCoord;
 				//glTexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
 				//glTexCoord[1] = gl_TextureMatrix[1] * gl_MultiTexCoord1;
 
@@ -737,8 +745,12 @@
 			var centerAtmosphere = vec3.fromValues(0.0, 0.0, -5.0);
 
 			var DEBUGTEXTURE;
-			
 
+			var earthAngle = 0.0;
+
+			var time_start;
+			var clock;
+			
 			function initGL(canvas) {
 				try {
 					gl = canvas.getContext("experimental-webgl");
@@ -936,6 +948,8 @@
 
 				gl.clearColor(0.0, 0.0, 0.0, 1.0);
 				gl.enable(gl.DEPTH_TEST);
+
+				time_start = new Date().getTime();
 
 				document.onkeydown = handleKeyDown;
 				document.onkeyup = handleKeyUp;

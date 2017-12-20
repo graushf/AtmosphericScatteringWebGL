@@ -113,10 +113,10 @@ function renderSphereSurfaceAdv(sphereRenderData, shaderProgram) {
 	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-	console.log(a);
-	console.log(b);
-	console.log(c);
-	console.log(d);
+	//console.log(a);
+	//console.log(b);
+	//console.log(c);
+	//console.log(d);
 
 
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
@@ -148,44 +148,46 @@ function renderSphereSurfaceAdv(sphereRenderData, shaderProgram) {
 	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-	console.log(a);
-	console.log(b);
-	console.log(c);
-	console.log(d);
+	//console.log(a);
+	//console.log(b);
+	//console.log(c);
+	//console.log(d);
 
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
-function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram) {
+function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, texture) {
 
-	gl.disableVertexAttribArray(0);
-	gl.disableVertexAttribArray(1);
+	gl.disableVertexAttribArray(shaderProgramFramebuffer.textureCoordAttribute);
 	var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-	console.log(a);
-	console.log(b);
-	console.log(c);
-	console.log(d);
+	//console.log(a);
+	//console.log(b);
+	//console.log(c);
+	//console.log(d);
 
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
 	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-	//shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-	//gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+	shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+	gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
 
 	shaderProgram.modelMatrixUniform = gl.getUniformLocation(shaderProgram, "uModelMatrix");
 	shaderProgram.viewMatrixUniform = gl.getUniformLocation(shaderProgram, "uViewMatrix");
 	shaderProgram.projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjectionMatrix");
+
+	shaderProgram.textureSamplerUniform = gl.getUniformLocation(shaderProgram, "uSamplerTexture");
 
 	var mMatrix = mat4.create();
 	var vMatrix = mat4.create();
 	var pMatrix = mat4.create();
 
 	mat4.identity(mMatrix);
+	mat4.rotate(mMatrix, mMatrix, degToRad(earthAngle), [0, 1, 0]);
 	mat4.identity(vMatrix);
 	mat4.identity(pMatrix);
 
@@ -196,20 +198,24 @@ function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram) {
 	gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, vMatrix);
 	gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, pMatrix);
 
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.uniform1i(shaderProgram.textureSamplerUniform, 0);
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexPositionBuffer);
 	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereRenderData.sphereVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-	//gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereTextureCoordBuffer);
-	//gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sphereRenderData.sphereVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexTextureCoordBuffer);
+	gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sphereRenderData.sphereVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 	var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-	console.log(a);
-	console.log(b);
-	console.log(c);
-	console.log(d);
+	//console.log(a);
+	//console.log(b);
+	//console.log(c);
+	//console.log(d);
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -382,6 +388,17 @@ function animate() {
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
         var elapsed = timeNow - lastTime;
+        clock = timeNow - time_start;
+        clock /= 1000;
+        //console.log("COS: "+Math.cos(degToRad(clock*10)));
+        //console.log(clock);
+       // m_vLight = vec3.fromValues(Math.cos(degToRad(clock*10)), 0.0, Math.sin(degToRad(clock*10)));
+        m_vLight = vec3.fromValues(Math.cos(degToRad(clock*0.5)), 0.0, Math.sin(degToRad(clock*0.5)));
+
+        //earthAngle += 0.001 * elapsed;
+        earthAngle = 0.0;
+
+        //console.log(m_vLight);
 
         xRot += (90 * elapsed) / 1000.0;
         yRot += (90 * elapsed) / 1000.0;
@@ -448,7 +465,7 @@ function renderPlanet(planetGeomRenderData, shaderProgram, texture) {
 	//renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, texture)
 
 	//renderSphereSurfaceAdv(planetGeomRenderData, shaderProgram);
-	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram);
+	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, texture);
 }
 
 function renderAtmosphere(atmosphereGeomRenderData, shaderProgram) {

@@ -63,7 +63,7 @@ function initGameEngine() {
 	var qOrientation = quat.fromValues(0.0, 0.0, 0.0, 1.0);
 	quat.normalize(qOrientation, qOrientation);
 
-	m_vLight = vec3.fromValues(0.0, 0.0, 1000.0);
+	m_vLight = vec3.fromValues(0.0, 0.0, -1000.0);
 	//m_vLight = vec3.fromValues(0.0, 700.0, 700.0);
 	//m_vLight = vec3.fromValues(1000.0, 0.0, 0.0);
 	var length = vec3.length(m_vLight);
@@ -100,8 +100,8 @@ function initGameEngine() {
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
 	 //planetGeomRenderData = generateSphereBuffersAdv(m_fInnerRadius, 100, 50);
 	 //atmosphereGeomRenderData = generateSphereBuffersAdv(m_fOuterRadius, 300, 150);
-	 planetGeomRenderData = generateSphereBuffersUpgraded(m_fInnerRadius, 30, 30);
-	 atmosphereGeomRenderData = generateSphereBuffersUpgraded(m_fOuterRadius, 30, 30);
+	 planetGeomRenderData = generateSphereBuffersUpgraded(m_fInnerRadius, 100, 50);
+	 atmosphereGeomRenderData = generateSphereBuffersUpgraded(m_fOuterRadius, 300, 150);
 
 
 
@@ -114,7 +114,8 @@ function initGameEngine() {
 	 // INIT MOON PIXEL BUFFER
 
 	 // INIT EARTH PIXEL BUFFER
-	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/earthmap1k.jpg");
+	 //texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/earthmap1k.jpg");
+	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/BlueMarbleCloudy.png");
 }
 
 function renderFrame() {
@@ -157,6 +158,10 @@ function RenderFrameAtmosphere(nMilliseconds)
 	vCamera = m_3DCamera.Position;
 	var vUnitCamera = vec3.create();
 	vec3.scale(vUnitCamera, vCamera, vec3.length(vCamera));
+
+	var length = vec3.length(m_vLight);
+	m_vLightDirection = vec3.create();
+	vec3.scale(m_vLightDirection, m_vLight, 1/length);
 
 	// var pSpaceShader;
 	// if (vec3.length(vCamera) < m_fOuterRadius) {
@@ -238,7 +243,7 @@ function RenderFrameAtmosphere(nMilliseconds)
 		//console.log("fScaleDepth: "+  m_fRayleighScaleDepth);
 		//console.log("fScaleOverScaleDepth: "+  (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
 		//console.log("g: "+  m_g);
-		console.log("g2: "+  Math.pow(m_g, 2));
+		//console.log("g2: "+  Math.pow(m_g, 2));
 	}
 
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
@@ -280,7 +285,7 @@ function RenderFrameAtmosphere(nMilliseconds)
 		gl.uniform1f(gl.getUniformLocation(pSkyShader, "g"), m_g);
 		gl.uniform1f(gl.getUniformLocation(pSkyShader, "g2"), Math.pow(m_g, 2));
 	}
-	console.log("v3CameraPos: "+vCamera[0] + " " +vCamera[1] + " " + vCamera[2]);
+	//console.log("v3CameraPos: "+vCamera[0] + " " +vCamera[1] + " " + vCamera[2]);
 	// TRY SETTING THE MOON AS LIGHT SOURCE
 
 	gl.frontFace(gl.CCW);
@@ -291,7 +296,6 @@ function RenderFrameAtmosphere(nMilliseconds)
  	renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
 	gl.frontFace(gl.CW);
  	gl.frontFace(gl.CCW);
-
 }
 
 function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight, fMieScaleHeight)
