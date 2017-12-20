@@ -26,25 +26,24 @@ function handleKeyUp(event) {
 	currentlyPressedKeys[event.keyCode] = false;
 }
 
-
 function handleKeys() { 
-	// FORWARD
-	// if (currentlyPressedKeys[87]) {
-	// 	//console.log("forward");
-	// 	m_3DCamera.ProcessKeyboard(0, deltaTime); // 0 is forward direction
-	// }
-	// BACKWARD
-	// if (currentlyPressedKeys[83]) {
-	// 	m_3DCamera.ProcessKeyboard(1, deltaTime); // 0 is forward direction
-	// }
-	// RIGHT
-	// if (currentlyPressedKeys[68]) {
-	// 	m_3DCamera.ProcessKeyboard(3, deltaTime); // 0 is forward direction
-	// }
-	// // LEFT
-	// if (currentlyPressedKeys[65]) {
-	// 	m_3DCamera.ProcessKeyboard(2, deltaTime); // 0 is forward direction
-	// }
+	//FORWARD
+	if (currentlyPressedKeys[87]) {
+		//console.log("forward");
+		m_3DCamera.ProcessKeyboard(0, deltaTime); // 0 is forward direction
+	}
+	//BACKWARD
+	if (currentlyPressedKeys[83]) {
+		m_3DCamera.ProcessKeyboard(1, deltaTime); // 0 is forward direction
+	}
+	//RIGHT
+	if (currentlyPressedKeys[68]) {
+		m_3DCamera.ProcessKeyboard(3, deltaTime); // 0 is forward direction
+	}
+	// LEFT
+	if (currentlyPressedKeys[65]) {
+		m_3DCamera.ProcessKeyboard(2, deltaTime); // 0 is forward direction
+	}
 	if (currentlyPressedKeys[27]) {
 		enableMouse = !enableMouse;
 	}
@@ -91,82 +90,82 @@ function handleKeys() {
 		m_3DCamera.Rotate(m_3DCamera.GetViewAxis(), 1/500*clock * ROTATE_SPEED);
 	}
 
-	var vAccel = vec3.create();
-	// Space key 
-	if (currentlyPressedKeys[32]) {
-		m_3DCamera.SetVelocity(vec3.create());
-	} else {
-		// Add camera's acceleration due to thrusters
-		var fThrust = THRUST;
-		// Ctrl key
-		if (currentlyPressedKeys[17]) {
-			fThrust *= 10.0;
-		}
+	// var vAccel = vec3.create();
+	// // Space key 
+	// if (currentlyPressedKeys[32]) {
+	// 	m_3DCamera.SetVelocity(vec3.create());
+	// } else {
+	// 	// Add camera's acceleration due to thrusters
+	// 	var fThrust = THRUST;
+	// 	// Ctrl key
+	// 	if (currentlyPressedKeys[17]) {
+	// 		fThrust *= 10.0;
+	// 	}
 
-		if (currentlyPressedKeys[16]) {
-			vec3.scale(m_3DCamera.vVelocity, m_3DCamera.vVelocity, 1/50);
-		}
+	// 	if (currentlyPressedKeys[16]) {
+	// 		vec3.scale(m_3DCamera.vVelocity, m_3DCamera.vVelocity, 1/50);
+	// 	}
 
-		// Thrust forward/reverse affects velocity along the view axis
-		// W key
-		if (currentlyPressedKeys[87]) {
-			var aux = vec3.create();
-			vec3.scale(aux, m_3DCamera.GetViewAxis(), fThrust);
-			vec3.add(vAccel, aux, vAccel);
-		}
-		// S key
-		if (currentlyPressedKeys[83]) {
-			var aux = vec3.create();
-			vec3.scale(aux, m_3DCamera.GetViewAxis(), -fThrust);	
-			vec3.add(vAccel, aux, vAccel);
-		}
+	// 	// Thrust forward/reverse affects velocity along the view axis
+	// 	// W key
+	// 	if (currentlyPressedKeys[87]) {
+	// 		var aux = vec3.create();
+	// 		vec3.scale(aux, m_3DCamera.GetViewAxis(), fThrust);
+	// 		vec3.add(vAccel, aux, vAccel);
+	// 	}
+	// 	// S key
+	// 	if (currentlyPressedKeys[83]) {
+	// 		var aux = vec3.create();
+	// 		vec3.scale(aux, m_3DCamera.GetViewAxis(), -fThrust);	
+	// 		vec3.add(vAccel, aux, vAccel);
+	// 	}
 
-		// Thrust left/right affects velocity along the right axis
-		// D key
-		if (currentlyPressedKeys[68]) {
-			var aux = vec3.create();
-			vec3.scale(aux, m_3DCamera.GetRightAxis(), fThrust);	
-			vec3.add(vAccel, aux, vAccel);		
-		}
+	// 	// Thrust left/right affects velocity along the right axis
+	// 	// D key
+	// 	if (currentlyPressedKeys[68]) {
+	// 		var aux = vec3.create();
+	// 		vec3.scale(aux, m_3DCamera.GetRightAxis(), fThrust);	
+	// 		vec3.add(vAccel, aux, vAccel);		
+	// 	}
 
-		// A key
-		if (currentlyPressedKeys[65]) {
-			var aux = vec3.create();
-			vec3.scale(aux, m_3DCamera.GetRightAxis(), -fThrust);	
-			vec3.add(vAccel, aux, vAccel);		
-		}
+	// 	// A key
+	// 	if (currentlyPressedKeys[65]) {
+	// 		var aux = vec3.create();
+	// 		vec3.scale(aux, m_3DCamera.GetRightAxis(), -fThrust);	
+	// 		vec3.add(vAccel, aux, vAccel);		
+	// 	}
 
-		// Thrust up/down affects velocity along the up axis
-		// M key
-		if (currentlyPressedKeys[77]) {
-			var aux = vec3.create();
-			vec3.scale(aux, m_3DCamera.GetUpAxis(), fThrust);	
-			vec3.add(vAccel, aux, vAccel);
-		}
-		// N key
-		if (currentlyPressedKeys[78]) {
-			var aux = vec3.create();
-			vec3.scale(aux, m_3DCamera.GetUpAxis(), -fThrust);	
-			vec3.add(vAccel, aux, vAccel);
-		}
+	// 	// Thrust up/down affects velocity along the up axis
+	// 	// M key
+	// 	if (currentlyPressedKeys[77]) {
+	// 		var aux = vec3.create();
+	// 		vec3.scale(aux, m_3DCamera.GetUpAxis(), fThrust);	
+	// 		vec3.add(vAccel, aux, vAccel);
+	// 	}
+	// 	// N key
+	// 	if (currentlyPressedKeys[78]) {
+	// 		var aux = vec3.create();
+	// 		vec3.scale(aux, m_3DCamera.GetUpAxis(), -fThrust);	
+	// 		vec3.add(vAccel, aux, vAccel);
+	// 	}
 		
 
-		if (cameraReady) {
-			if (!(clock === undefined)) {
-				m_3DCamera.Accelerate(vAccel, 1/60*clock, RESISTANCE);
-			}
-		}
-		var vPos = vec3.create();
-		vPos = m_3DCamera.GetPosition();
-		var fMagnitude = vec3.length(vPos);
-		// if (fMagnitude < m_fInnerRadius)
-		// {
-		// 	vec3.scale(vPos, vPos, (m_fInnerRadius * (1 + 1e-6)) / fMagnitude);
-		// 	m_3DCamera.SetPosition(vPos) ;
-		// 	m_3DCamera.SetVelocity(-m_3DCamera.GetVelocity());
-		// }
+	// 	if (cameraReady) {
+	// 		if (!(clock === undefined)) {
+	// 			m_3DCamera.Accelerate(vAccel, 1/60*clock, RESISTANCE);
+	// 		}
+	// 	}
+	// 	var vPos = vec3.create();
+	// 	vPos = m_3DCamera.GetPosition();
+	// 	var fMagnitude = vec3.length(vPos);
+	// 	// if (fMagnitude < m_fInnerRadius)
+	// 	// {
+	// 	// 	vec3.scale(vPos, vPos, (m_fInnerRadius * (1 + 1e-6)) / fMagnitude);
+	// 	// 	m_3DCamera.SetPosition(vPos) ;
+	// 	// 	m_3DCamera.SetVelocity(-m_3DCamera.GetVelocity());
+	// 	// }
 		
-	}
+	// }
 
 }
 

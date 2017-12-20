@@ -14,7 +14,12 @@
 		<script type="text/javascript" src="game-engine.js"></script>
 		<script type="text/javascript" src="shader.js"></script>
 		<script type="text/javascript" src="texture.js"></script>
+		
+		<script type="text/javascript" src="resize.js"></script>
 
+		<script type="text/javascript" src="ui-manager.js"></script>
+
+		<link rel="stylesheet" href="styles.css">
 		<!-- Shader code -->
 		<script id="shader-fs" type="x-shader/x-fragment">
 			precision mediump float;
@@ -926,6 +931,7 @@
 				calculateDeltaTime();
 				animate();
 
+				handleUI();
 				
 			}
 
@@ -962,7 +968,62 @@
 	</head>
 
 	<body onload="webGLStart();">
-		<canvas id="Atmospheric-scattering-canvas" style="border: none;" width="1024" height="1024"></canvas>
+		<!-- <canvas id="Atmospheric-scattering-canvas" style="border: none;" width="1920" height="1080"></canvas> -->
+		<table style="border: 0; padding: 10px;">
+			<input id="slow-check" type="checkbox" id="color-map"> <b>Slow down sky:</b><br>
+	        <!-- <tbody><tr>
+	            <td><b>nSamples:</b>
+	            </td><td>X: <input type="text" id="lightPositionX" value="-10.0">
+	            </td><td>Y: <input type="text" id="lightPositionY" value="4.0">
+	            </td><td>Z: <input type="text" id="lightPositionZ" value="-20.0">
+	        </td></tr>
+	        <tr>
+	            <td><b>ESun: </b>
+	            </td><td>R: <input type="text" id="specularR" value="5.0">
+	            </td><td>G: <input type="text" id="specularG" value="5.0">
+	            </td><td>B: <input type="text" id="specularB" value="5.0">
+	        </td></tr>
+	        <tr>
+	            <td><b>Kr:</b>
+	            </td><td>R: <input type="text" id="diffuseR" value="0.8">
+	            </td><td>G: <input type="text" id="diffuseG" value="0.8">
+	            </td><td>B: <input type="text" id="diffuseB" value="0.8">
+	        </td></tr>
+	        <tr>
+	            <td><b>Km:</b>
+	            </td><td>R: <input type="text" id="diffuseR" value="0.8">
+	            </td><td>G: <input type="text" id="diffuseG" value="0.8">
+	            </td><td>B: <input type="text" id="diffuseB" value="0.8">
+	        </td></tr>
+	        <tr>
+	            <td><b>Exposure:</b>
+	            </td><td>R: <input type="text" id="diffuseR" value="0.8">
+	            </td><td>G: <input type="text" id="diffuseG" value="0.8">
+	            </td><td>B: <input type="text" id="diffuseB" value="0.8">
+	        </td></tr>
+	        <tr>
+	            <td><b>Red:</b>
+	            </td><td>R: <input type="text" id="diffuseR" value="0.8">
+	            </td><td>G: <input type="text" id="diffuseG" value="0.8">
+	            </td><td>B: <input type="text" id="diffuseB" value="0.8">
+	        </td></tr>
+	        <tr>
+	            <td><b>Blue:</b>
+	            </td><td>R: <input type="text" id="diffuseR" value="0.8">
+	            </td><td>G: <input type="text" id="diffuseG" value="0.8">
+	            </td><td>B: <input type="text" id="diffuseB" value="0.8">
+	        </td></tr>
+	        <tr>
+	            <td><b>Green:</b>
+	            </td><td>R: <input type="text" id="diffuseR" value="0.8">
+	            </td><td>G: <input type="text" id="diffuseG" value="0.8">
+	            </td><td>B: <input type="text" id="diffuseB" value="0.8">
+	        </td></tr> -->
+	    </tbody></table>
+
+
+		<canvas id="Atmospheric-scattering-canvas" style="border: none;" width="1920" height="1080"></canvas>
+
 	</body>
 
 </html>
