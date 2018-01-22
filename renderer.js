@@ -6,6 +6,8 @@ var lastTime = 0;
 
 var uiSpeed = 1.0;
 
+var elapsedFrame;
+
 function renderSphere(sphereRenderData, translatePos, scaleAmount, color, opacity) {
 	gl.useProgram(shaderProgram);
 
@@ -389,12 +391,15 @@ function animate() {
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
         var elapsed = timeNow - lastTime;
+        elapsedFrame = elapsed;
         clock = timeNow - time_start;
         clock /= 1000;
         //console.log("COS: "+Math.cos(degToRad(clock*10)));
         //console.log(clock);
         m_vLight = vec3.fromValues(Math.cos(degToRad(clock*10*uiSpeed)), 0.0, Math.sin(degToRad(clock*10*uiSpeed)));
         //m_vLight = vec3.fromValues(Math.cos(degToRad(clock*0.5)), 0.0, Math.sin(degToRad(clock*0.5)));
+
+        auxAngle += 0.001 * elapsed;
 
         //earthAngle += 0.001 * elapsed;
         earthAngle = 0.0;

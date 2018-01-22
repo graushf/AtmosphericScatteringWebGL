@@ -48,6 +48,8 @@ var texturePlanet;
 var pGroundShader;
 var pSkyShader;
 
+var exposureQuantity = 0.8;
+
 function initGameEngine() {
 	
 	gl.enable(gl.DEPTH_TEST);
@@ -116,6 +118,8 @@ function initGameEngine() {
 	 // INIT EARTH PIXEL BUFFER
 	 //texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/earthmap1k.jpg");
 	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/BlueMarbleCloudy.png");
+
+	 initManagerUI();
 }
 
 function renderFrame() {
@@ -140,6 +144,12 @@ function renderFrame() {
 
 function RenderFrameAtmosphere(nMilliseconds)
 {
+	debugCamera();
+
+	m_fWavelength4[0] = Math.pow(m_fWavelength[0], 4.0);
+	m_fWavelength4[1] = Math.pow(m_fWavelength[1], 4.0);
+	m_fWavelength4[2] = Math.pow(m_fWavelength[2], 4.0);
+
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	// Determine the FPS
@@ -296,6 +306,8 @@ function RenderFrameAtmosphere(nMilliseconds)
  	renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
 	gl.frontFace(gl.CW);
  	gl.frontFace(gl.CCW);
+
+ 	updateUI(clock, auxAngle);
 }
 
 function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight, fMieScaleHeight)
