@@ -94,6 +94,31 @@ function Camera3D() {
 		this.viewMatrix = mat4.create();
 	},
 
+	this.CameraSetPosAndRot = function(position, quaternionRotation, WIDTH, HEIGHT) {
+		var up = vec3.fromValues(0.0, 1.0, 0.0);
+		var yaw = this.YAW;
+		var pitch = this.PITCH;
+		this.Front = vec3.fromValues(0.0, 0.0, -1.0);
+		this.MovementSpeed = this.SPEED;
+		this.MouseSensitivity = this.SENSITIVITY;
+		this.Zoom = this.ZOOM;
+		this.Position = position;
+		this.WorldUp = up;
+		this.Yaw = yaw;
+		this.Pitch = pitch;
+		this.screenWIDTH = WIDTH;
+		this.screenHEIGHT = HEIGHT;
+		this.updateCameraVectors();
+		this.qRotation = quaternionRotation;
+		this.matRot = mat4.create();
+		this.vAccel = vec3.create();
+		this.vVelocity = vec3.create();
+
+		cameraReady = true;
+
+		this.viewMatrix = mat4.create();
+	},
+
 	this.Camera = function(position, up, yaw, pitch, WIDTH, HEIGHT) {
 		this.Front = vec3.fromValues(0.0, 0.0, -1.0);
 		this.MovementSpeed = this.SPEED;
@@ -148,8 +173,8 @@ function Camera3D() {
 			//mat4.fromQuat(this.matRot, this.qRotation);
 
 			//mat4.lookAt(retMat, this.Position, center, this.Up);
-			
-			
+
+
 			//console.log("this.UP: "+this.Up);
 			//console.log("this.RIGHT: "+ this.Right);
 			//console.log("this.FORWARD: "+this.Front);
@@ -158,14 +183,14 @@ function Camera3D() {
 
 			//console.log("_up: "+_up);
 			//console.log("_right: "+ _right);
-			//console.log("_forward: "+_forward);		
+			//console.log("_forward: "+_forward);
 			//console.log("_Forward: "+_Forward);
 
 
 			//mat4.multiply(retMat, this.matRot, retMat);
 
 			//this.updateCameraVectorsWithQuatRot(retMat)
-			
+
 			//this.viewMatrix = retMat;
 
 
@@ -178,9 +203,16 @@ function Camera3D() {
 			this.qRotation[2] *= -1.0;
 
 			var v = vec3.fromValues(-1.0 * this.Position[0], -1.0 * this.Position[1], -1.0 * this.Position[2]);
-			mat4.translate(this.viewMatrix, this.viewMatrix, v);	
+			mat4.translate(this.viewMatrix, this.viewMatrix, v);
 
 			this.recalcViewMatrix = false;
+		} if ((enableMouse == true) && (mouseDown == true)) {
+			var retMat = mat4.create();
+			var center = vec3.create();
+			vec3.add(center, this.Position, this.Front);
+			mat4.lookAt(retMat, this.Position, center, this.Up);
+			this.viewMatrix = retMat;
+
 		}
 
 		return this.viewMatrix;
@@ -191,7 +223,7 @@ function Camera3D() {
 		var pPatrix = mat4.create();
 		mat4.perspective(pMatrix, this.convertToRadians(45), this.screenWIDTH/this.screenHEIGHT, this.Near, this.Far);
 		return pMatrix;
-		
+
 	},
 
 	this.ProcessKeyboard = function(direction, deltaTime) {
@@ -253,7 +285,7 @@ function Camera3D() {
 
 	this.convertToRadians = function(degrees) {
 		return (degrees * (0.01745329251994329576923690768489));
-	}
+	},
 
 	this.updateCameraVectors = function() {
 		console.log("CAMERA.UPDATECAMERAVECTORS");
@@ -273,7 +305,6 @@ function Camera3D() {
 		aux = vec3.create();
 		vec3.cross(aux, this.Right, this.Front);
 		vec3.normalize(this.Up, aux);
-
 
 		// console.log("this.Up.x: "+this.Up[0]);
 		// console.log("this.Up.y: "+this.Up[1]);
@@ -333,7 +364,7 @@ function Camera3D() {
 		// 	this.WorldUp[2] = aux2[2];
 
 		// }
-		
+
 	},
 
 	this.GetNearValue = function() {
@@ -372,8 +403,12 @@ function Camera3D() {
     	vec3.transformQuat(this.Up, this.Up, q);
     	vec3.transformQuat(this.Front, this.Front, q);
 
-    	quat.multiply(this.qRotation, q, this.qRotation);
+		//var aux = vec3.create();
+		//vec3.cross(aux, this.Front, this.Up);
+		//vec3.normalize(this.Right, aux);
+		//this.Right = -this.Right;
 
+    	quat.multiply(this.qRotation, q, this.qRotation);
 
     	this.registerRotation();
     	this.recalcViewMatrix = true;
@@ -421,10 +456,12 @@ function Camera3D() {
     		vec3.scale(this.vVelocity, this.vVelocity, 1.0 - fResistance * fSeconds);
     	}
     	vec3.scale(aux, this.vVelocity, fSeconds);
-		
+
 		vec3.add(this.Position, this.Position, aux);
 
-		this.recalcViewMatrix = true;
+		//if ((enableMouse == false) && (mouseDown == false)) {
+			this.recalcViewMatrix = true;
+		//}
 
 		//vec3.add(this.Position, this.Position, vec3.fromValues(0.0, 0.0, 0.1));
 		//this.recalcViewMatrix = true;
@@ -462,17 +499,46 @@ function Camera3D() {
     	vec3.normalize(this.Front, this.Front);
     	quat.normalize(this.qRotation, this.qRotation);
 
-    	// Assuming forward 'f' is correct
-    	vec3.cross(this.Right, this.Up, this.Front);
-    	vec3.cross(this.Up, this.Front, this.Right);
-    }
+		// Assuming forward 'f' is correct
+		var aux = vec3.create();
+		vec3.cross(aux, this.Front, this.WorldUp);
+		vec3.normalize(this.Right, aux);
+		aux = vec3.create();
+		vec3.cross(aux, this.Right, this.Front);
+		vec3.normalize(this.Up, aux);
+		//vec3.cross(this.Right, this.Up, this.Front);
+		//vec3.cross(this.Up, this.Front, this.Right);
+		//vec3.cross(this.Up, this.Front, this.Right);
+
+		/*
+			var aux = vec3.create();
+			vec3.cross(aux, this.Front, this.WorldUp);
+			vec3.normalize(this.Right, aux);
+			aux = vec3.create();
+			vec3.cross(aux, this.Right, this.Front);
+			vec3.normalize(this.Up, aux);
+		*/
+    },
+
+	this.debugCamera = function() {
+	    console.log("POSITION: "+ this.Position);
+	    console.log("DIR P-Y: "+ this.Pitch + "    " + this.Yaw);
+		console.log("this.qRotation: "+m_3DCamera.qRotation);
+		//m_3DCamera.debugFrontVector();
+		//console.log("CAMERA FRONT: "+ m_3DCamera.Front[0]+ ", "+ m_3DCamera.Front[1] + ", " + m_3DCamera.Front[2]);
+		//console.log("CAMERA UP: "+ m_3DCamera.Up[0]+ ", "+ m_3DCamera.Up[1] + ", " + m_3DCamera.Up[2]);
+		//var aux = vec3.create();
+
+
+		//console.log("CAMERA RIGHT: "+ m_3DCamera.Right[0]+ ", "+ m_3DCamera.Right[1] + ", " + m_3DCamera.Right[2]);
+	}
 }
 
-function initCamera() {
+function initCameraSpace() {
     //Camera : function(position, WIDTH, HEIGHT);
     var myCamera = new Camera3D();
-    var aux = vec3.fromValues(0.0, 0.0, 0.0);
-    myCamera.CameraSetPos(aux, gl.viewportWidth, gl.viewportHeight);
+    var pos = vec3.fromValues(0.0, 0.0, 50.0);
+    myCamera.CameraSetPos(pos, gl.viewportWidth, gl.viewportHeight);
     console.log(myCamera);
     console.log("bla");
 
@@ -480,9 +546,16 @@ function initCamera() {
     //positionFocalPlane = myCamera.Position + 0.0 * myCamera.Front;
 }
 
-function debugCamera() {
-    //console.log("POSITION: "+ myCamera.Position);
-    //console.log("DIR P-Y: "+ myCamera.Pitch + "    " + myCamera.Yaw);
-	//console.log("this.qRotation: "+m_3DCamera.qRotation);
-	m_3DCamera.debugFrontVector();
+function initCameraEarth() {
+    //Camera : function(position, WIDTH, HEIGHT);
+    var myCamera = new Camera3D();
+    var pos = vec3.fromValues(-4.9809, -0.1385, 8.7281);
+	var qOrientation = quat.fromValues(0.6231, -0.6003, -0.3505, 0.3583);
+	quat.normalize(qOrientation, qOrientation);
+    myCamera.CameraSetPosAndRot(pos, qOrientation, gl.viewportWidth, gl.viewportHeight);
+    console.log(myCamera);
+    console.log("bla");
+
+    return myCamera;
+    //positionFocalPlane = myCamera.Position + 0.0 * myCamera.Front;
 }

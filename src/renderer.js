@@ -163,7 +163,7 @@ function renderSphereSurfaceAdv(sphereRenderData, shaderProgram) {
 
 function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, texture) {
 
-	gl.disableVertexAttribArray(shaderProgramFramebuffer.textureCoordAttribute);
+	gl.disableVertexAttribArray(m_shFullScrQuad.textureCoordAttribute);
 	var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
@@ -382,7 +382,7 @@ function renderRay(bUseView, matrixTransform) {
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexPositionBuffer);
 	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, planeRenderData.planeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-	
+
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, planeRenderData.planeVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, planeRenderData.planeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
@@ -396,7 +396,7 @@ function animate() {
         clock /= 1000;
         //console.log("COS: "+Math.cos(degToRad(clock*10)));
         //console.log(clock);
-        m_vLight = vec3.fromValues(Math.cos(degToRad(clock*10*uiSpeed)), 0.0, Math.sin(degToRad(clock*10*uiSpeed)));
+        //m_vLight = vec3.fromValues(Math.cos(degToRad(clock*0.5*uiSpeed)), 0.0, Math.sin(degToRad(clock*0.5*uiSpeed))); // BUENA
         //m_vLight = vec3.fromValues(Math.cos(degToRad(clock*0.5)), 0.0, Math.sin(degToRad(clock*0.5)));
 
         auxAngle += 0.001 * elapsed;
@@ -408,14 +408,15 @@ function animate() {
 
         xRot += (90 * elapsed) / 1000.0;
         yRot += (90 * elapsed) / 1000.0;
-        zRot += (90 * elapsed) / 1000.0;
+		zRot += (90 * elapsed) / 1000.0;
+
     }
     lastTime = timeNow;
 }
 
 function drawShapes() {
 	//gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	
+
 	renderSphereSurface(sphereRenderData, centerEarth, radiusEarth, vec3.fromValues(1.0, 0.0, 0.0), 0.5);
 	renderSphereSurface(sphereRenderData, centerAtmosphere, radiusAtmosphere, vec3.fromValues(0.0, 0.0, 1.0), 0.5);
 
@@ -432,7 +433,7 @@ function drawShapesWithRay() {
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	//renderSphere(sphereRenderData, vec3.fromValues(0.0, 0.0, -5.0), vec3.fromValues(3.0, 3.0, 3.0), vec3.fromValues(1.0, 0.0, 0.0));
 	//renderSphere(sphereRenderData, vec3.fromValues(0.0, 0.0, -5.0), vec3.fromValues(3.5, 3.5, 3.5), vec3.fromValues(0.0, 0.0, 1.0));
-	
+
 	renderSphereSurface(sphereRenderData, centerEarth, radiusEarth, vec3.fromValues(1.0, 0.0, 0.0), 0.5);
 	renderSphereSurface(sphereRenderData, centerAtmosphere, radiusAtmosphere, vec3.fromValues(0.0, 0.0, 1.0), 0.5);
 
@@ -458,7 +459,7 @@ function drawShapesAtCameraPosition(positionCamera, PitchCamera, YawCamera) {
 
 	m_3DCamera.SetPositionAndDirectionCamera(positionCamera, PitchCamera, YawCamera);
 	drawShapes();
-	// Rendering Ray 
+	// Rendering Ray
 	renderCube(cubeRenderData, true, matViewAux, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.01, 0.01, 50.0), vec3.fromValues(1.0, 0.0, 0.0));
 	// Rendering Camera Position
 	renderCube(cubeRenderData, true, matViewAux, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.1, 0.1, 0.1), vec3.fromValues(0.0, 1.0, 0.0));
@@ -569,40 +570,37 @@ function drawScreenFillingTexture(texture) {
 }
 
 
-function drawScreenFillingTextureHDR(texture) {
-	
+function drawScreenFillingTextureHDR(shader, texture) {
+
 	gl.disableVertexAttribArray(0);
 	gl.disableVertexAttribArray(1);
 
+	gl.useProgram(shader);
 
-	gl.useProgram(shaderProgramFramebuffer);
+	shader.vertexPositionAttribute = gl.getAttribLocation(shader, "aVertexPosition");
+	gl.enableVertexAttribArray(shader.vertexPositionAttribute);
 
-	shaderProgramFramebuffer.vertexPositionAttribute = gl.getAttribLocation(shaderProgramFramebuffer, "aVertexPosition");
-	gl.enableVertexAttribArray(shaderProgramFramebuffer.vertexPositionAttribute);
+	shader.textureCoordAttribute = gl.getAttribLocation(shader, "aTextureCoord");
+	gl.enableVertexAttribArray(shader.textureCoordAttribute);
 
-	shaderProgramFramebuffer.textureCoordAttribute = gl.getAttribLocation(shaderProgramFramebuffer, "aTextureCoord");
-	gl.enableVertexAttribArray(shaderProgramFramebuffer.textureCoordAttribute);
+	shader.samplerUniform = gl.getUniformLocation(shader, "uSampler");
 
-	shaderProgramFramebuffer.samplerUniform = gl.getUniformLocation(shaderProgramFramebuffer, "uSampler");
+	shader.modelMatrixUniform = gl.getUniformLocation(shader, "model");
 
-	shaderProgramFramebuffer.modelMatrixUniform = gl.getUniformLocation(shaderProgramFramebuffer, "model");
-
-	shaderProgramFramebuffer.fExposureUniform = gl.getUniformLocation(shaderProgramFramebuffer, "fHdrExposure");
+	shader.fExposureUniform = gl.getUniformLocation(shader, "fHdrExposure");
 
 	//gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	gl.disable(gl.DEPTH_TEST);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexPositionBuffer);
-	gl.vertexAttribPointer(shaderProgramFramebuffer.vertexPositionAttribute, planeRenderData.planeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	gl.vertexAttribPointer(shader.vertexPositionAttribute, planeRenderData.planeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexTextureCoordBuffer);
-	gl.vertexAttribPointer(shaderProgramFramebuffer.textureCoordAttribute, planeRenderData.planeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0 , 0);
+	gl.vertexAttribPointer(shader.textureCoordAttribute, planeRenderData.planeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0 , 0);
 
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.uniform1i(shaderProgramFramebuffer.samplerUniform, 0);
-
-
+	gl.uniform1i(shader.samplerUniform, 0);
 
 
 	mat4.identity(mMatrix);
@@ -611,10 +609,10 @@ function drawScreenFillingTextureHDR(texture) {
 	mat4.fromScaling(aux, [1.0, 1.0, 1.0]);
 	mat4.multiply(mMatrix, mMatrix, aux);
 
-	gl.uniformMatrix4fv(shaderProgramFramebuffer.modelMatrixUniform, false, mMatrix);
+	gl.uniformMatrix4fv(shader.modelMatrixUniform, false, mMatrix);
 
-	gl.uniform1i(gl.getUniformLocation(shaderProgramFramebuffer, "uDrawBorder"), 0);
-	gl.uniform1f(shaderProgramFramebuffer.fExposureUniform, exposureQuantity);
+	gl.uniform1i(gl.getUniformLocation(shader, "uDrawBorder"), 0);
+	gl.uniform1f(shader.fExposureUniform, exposureQuantity);
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, planeRenderData.planeVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, planeRenderData.planeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);

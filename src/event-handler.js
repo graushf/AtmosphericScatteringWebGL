@@ -3,7 +3,8 @@ var lastFrame = 0.0;	// Time of last frame
 
 var firstMouse = true;
 
-var enableMouse = false;
+var enableMouse = true;
+var mouseDown = false;
 
 var key_press;
 var key_code;
@@ -170,11 +171,11 @@ function handleKeys() {
 	// Turn up/down means rotate around the right axis
 	// Up arrow
 	if (currentlyPressedKeys[38]) {
-		m_3DCamera.Rotate(m_3DCamera.GetRightAxis(), 1/2000 * elapsedFrame * -ROTATE_SPEED);
+		m_3DCamera.Rotate(m_3DCamera.GetRightAxis(), 1/2000 * elapsedFrame * ROTATE_SPEED);
 	}
 	// Down arrow
 	if (currentlyPressedKeys[40]) {
-		m_3DCamera.Rotate(m_3DCamera.GetRightAxis(), 1/2000 * elapsedFrame * ROTATE_SPEED);
+		m_3DCamera.Rotate(m_3DCamera.GetRightAxis(), 1/2000 * elapsedFrame * -ROTATE_SPEED);
 	}
 
 	// Turn left/right means rotate around the up axis
@@ -256,9 +257,12 @@ function handleKeys() {
 		
 
 		if (cameraReady) {
-			if (!(clock === undefined)) {
+			if (!(elapsedFrame === undefined)) {
 				//console.log("vAccel: "+vAccel);
-				m_3DCamera.Accelerate(vAccel, 1/60*clock, RESISTANCE);
+				//console.log(1/60 * clock);
+				//console.log("Elapsed Frame: " + elapsedFrame);
+				//m_3DCamera.Accelerate(vAccel, 1/60*clock, RESISTANCE);
+				m_3DCamera.Accelerate(vAccel, 1/1000 * elapsedFrame, RESISTANCE);
 			}
 		}
 	// 	var vPos = vec3.create();
@@ -275,30 +279,40 @@ function handleKeys() {
 
 }
 
+function handleMouseDown(event) {
+	mouseDown = true;
+}
+
+function handleMouseUp(event) {
+	mouseDown = false;
+}
+
 function handleMouseMove(event) {
 	//console.log(event);
 	//console.log(event.screenX);
 	//console.log(event.screenY);
 	if (enableMouse) {
-		var xpos = event.clientX;
-		var ypos = event.clientY;
+		if (mouseDown == true) {
+			var xpos = event.clientX;
+			var ypos = event.clientY;
 
-		if (firstMouse) {
+			if (firstMouse) {
+				lastX = xpos;
+				lastY = ypos;
+				firstMouse = false;
+			}
+
+			var xoffset = xpos - lastX;
+			var yoffset = lastY - ypos;	// Reversed since y-coordinates go from bottom to left
+
 			lastX = xpos;
 			lastY = ypos;
-			firstMouse = false;
-		}
 
-		var xoffset = xpos - lastX;
-		var yoffset = lastY - ypos;	// Reversed since y-coordinates go from bottom to left
+			//console.log(xoffset);
+			//console.log(yoffset);
 
-		lastX = xpos;
-		lastY = ypos;
-
-		//console.log(xoffset);
-		//console.log(yoffset);
-
-		m_3DCamera.ProcessMouseMovement(xoffset, yoffset, true);
+			m_3DCamera.ProcessMouseMovement(xoffset, yoffset, true);
+		} 
 	}
 	
 }

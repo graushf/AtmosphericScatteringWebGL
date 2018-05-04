@@ -1,4 +1,4 @@
- function isPowerOf2(value) {
+function isPowerOf2(value) {
     return (value & (value - 1)) == 0;
 }
 
@@ -8,7 +8,7 @@ function loadTexture(url) {
 
     // Because images have to be downloaded over the internet
     // they might take a moment until they are ready.
-    // Until then put a single pixel in the texture so we can 
+    // Until then put a single pixel in the texture so we can
     // use it immediately. When the image has finished downloading
     // we'll update the texture with the contents of the image.
     const level = 0;
@@ -27,7 +27,7 @@ function loadTexture(url) {
         gl.texImage2D(gl.TEXTURE_2D, level, internalFormal, srcFormat, srcType, image);
 
         // WebGL1 has different requirements for power of 2 images
-        // vs non power of 2 images so check if the image is a 
+        // vs non power of 2 images so check if the image is a
         // power of 2 in both dimensions
         if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
             // Yes, it's a power of 2. Generate mips.

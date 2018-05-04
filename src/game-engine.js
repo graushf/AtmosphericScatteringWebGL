@@ -31,6 +31,8 @@ var m_pbOpticalDepth;
 var m_tMoonGlow;
 var m_tEarth;
 
+var m_shFullScrQuad;
+
 var m_shSkyFromSpace;
 var m_shSkyFromAtmosphere;
 var m_shGroundFromSpace;
@@ -45,41 +47,36 @@ var atmosphereGeomRenderData;
 
 var texturePlanet;
 
+var textureDebug;
+
 var pGroundShader;
 var pSkyShader;
 
 var exposureQuantity = 0.8;
 
+var debugFloatTexture;
+var opticalDepthLUT;
+
 function initGameEngine() {
-	
+
 	gl.enable(gl.DEPTH_TEST);
-	//gl.depthFunc(gl.GL_LEQUAL);
 	gl.enable(gl.CULL_FACE);
 
-	m_3DCamera = initCamera();
+	createFramebufferHDR();
 
-	//0.8422417044639587 8.989599227905273 4.677064418792725
-	m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 0.0, 50.0), gl.viewportWidth, gl.viewportHeight); // CAMERA POSITION ON SPACE
-	//m_3DCamera.CameraSetPos(vec3.fromValues(0.0, 10.0, 1.0), gl.viewportWidth, gl.viewportHeight); // CAMERA POSITION ON EARTH
+	m_3DCamera = initCameraSpace();
 
-	var qOrientation = quat.fromValues(0.0, 0.0, 0.0, 1.0);
-	quat.normalize(qOrientation, qOrientation);
-
-	m_vLight = vec3.fromValues(0.0, 0.0, -1000.0);
-	//m_vLight = vec3.fromValues(0.0, 700.0, 700.0);
-	//m_vLight = vec3.fromValues(1000.0, 0.0, 0.0);
+	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
+	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
 	var length = vec3.length(m_vLight);
 	m_vLightDirection = vec3.create();
 	vec3.scale(m_vLightDirection, m_vLight, 1/length);
-
-	//m_vLight = vec3.fromValues(0.0, -0.9, -0.5);
 
 	 m_Samples = 3;
 	 m_Kr = 0.0025;
 	 m_Kr4PI = m_Kr * 4.0 * Math.PI;
 	 m_Km = 0.0010;
 	 m_Km4PI = m_Km * 4.0 * Math.PI;
-	 //m_ESun = 20.0;
 	 m_ESun = 15.0;
 	 m_g = -0.990;
 	 m_fExposure = 2.0;
@@ -98,71 +95,44 @@ function initGameEngine() {
 	 m_fRayleighScaleDepth = 0.25;
 	 m_fMieScaleDepth = 0.1;
 	 m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth);
+	 createOpticalDepthLUT();
 
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
-	 //planetGeomRenderData = generateSphereBuffersAdv(m_fInnerRadius, 100, 50);
-	 //atmosphereGeomRenderData = generateSphereBuffersAdv(m_fOuterRadius, 300, 150);
+	 screenFillingPlaneRenderData = initBuffersPlane();
 	 planetGeomRenderData = generateSphereBuffersUpgraded(m_fInnerRadius, 100, 50);
 	 atmosphereGeomRenderData = generateSphereBuffersUpgraded(m_fOuterRadius, 300, 150);
 
 
-
 	 // CREATE SHADERS;
 	 console.log("Creating Shaders");
-	 m_shGroundFromSpace = createShader("GroundFromSpace-vs", "GroundFromSpace-fs");
-	 m_shSkyFromSpace = createShader("SkyFromSpace-vs", "SkyFromSpace-fs");
-	 m_shGroundFromAtmosphere = createShader("GroundFromAtmosphere-vs", "GroundFromAtmosphere-fs");
-	 m_shSkyFromAtmosphere = createShader("SkyFromAtmosphere-vs", "SkyFromAtmosphere-fs");
+	 m_shFullScrQuad = createShaderByFilename(FullScreenQuad_vs, FullScreenQuad_fs);
+	 m_shGroundFromSpace =  createShaderByFilename(GroundFromSpace_vs, GroundFromSpace_fs);
+	 m_shSkyFromSpace = createShaderByFilename(SkyFromSpace_vs, SkyFromSpace_fs);
+	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
+	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
 	 // INIT MOON PIXEL BUFFER
 
 	 // INIT EARTH PIXEL BUFFER
-	 //texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/earthmap1k.jpg");
-	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/BlueMarbleCloudy.png");
+	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/BlueMarbleCloudy.png");
+	 textureDebug = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/nature.jpg");
+
+	 makeOpticalDepthBuffer(10.0, 10.25, 0.25, 0.10)
 
 	 initManagerUI();
 }
 
-function renderFrame() {
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupScene);
-	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-
-	drawShapesAtCameraPosition(vec3.fromValues(4.79, 6.62, 0.16), -42.5, -145.0);
-	//renderPlanet(planetGeomRenderData);
-
-
-	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-
-	//drawShapesWithRay();
-	renderPlanet(planetGeomRenderData);
-	renderAtmosphere(atmosphereGeomRenderData);
-
-	gl.viewport(3 * (gl.viewportWidth/4), 2*(gl.viewportHeight/4.0), gl.viewportWidth/4.0, gl.viewportHeight/4.0);
-	drawScreenFillingTexture(textureFramebufferSetupScene);
-}
-
-function RenderFrameAtmosphere(nMilliseconds)
+function RenderFrameAtmosphere()
 {
-	debugCamera();
-
 	m_fWavelength4[0] = Math.pow(m_fWavelength[0], 4.0);
 	m_fWavelength4[1] = Math.pow(m_fWavelength[1], 4.0);
 	m_fWavelength4[2] = Math.pow(m_fWavelength[2], 4.0);
 
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	// Determine the FPS
-
-	// Move the camera
-	// handle input
-	
 
 	var mViewMatrix = mat4.create();
 	mViewMatrix = m_3DCamera.GetViewMatrix();
 
-	//var mModelMatrix = mat4.create();
-	//mModelMatrix = m_3DCamera.GetModel
 
 	var vCamera = vec3.create();
 	vCamera = m_3DCamera.Position;
@@ -173,44 +143,6 @@ function RenderFrameAtmosphere(nMilliseconds)
 	m_vLightDirection = vec3.create();
 	vec3.scale(m_vLightDirection, m_vLight, 1/length);
 
-	// var pSpaceShader;
-	// if (vec3.length(vCamera) < m_fOuterRadius) {
-	// 	pSpaceShader = m_shSpaceFromAtmosphere;
-	// }
-	// else if (vCamera.z > 0.0) {
-	// 	pSpaceShader = m_shSpaceFromSpace;
-	// }
-
-	// if (pSpaceShader) 
-	// {
-	// 	gl.useProgram(pSpaceShader);
-	// 	gl.uniform3f(gl.getUniformLocation(pSpaceShader, "v3CameraPos"), vCamera[0], vCamera[1], vCamera[2]);
-	// 	gl.uniform3f(gl.getUniformLocation(pSpaceShader, "v3LightPos"), m_vLightDirection[0], m_vLightDirection[1], m_vLightDirection[2]);
-	// 	gl.uniform3f(gl.getUniformLocation(pSpaceShader, "v3InvWavelength"), 1/m_fWavelength4[0], 1/m_fWavelength4[1], 1/m_fWavelength4[2]);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fCameraHeight"), vec3.length(vCamera));
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fCameraHeight2"), Math.pow(vec3.length(vCamera), 2.0));
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fInnerRadius"), m_fInnerRadius);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fInnerRadius2"), Math.pow(m_fInnerRadius, 2.0))
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fOuterRadius"), m_fOuterRadius);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fOuterRadius2"), Math.pow(m_fOuterRadius, 2.0));
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKrESun"), m_Kr * m_ESun);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKmESun"), m_Km * m_Esun);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKr4PI"), m_Kr4PI);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKm4PI"), m_Km4PI);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fScale"), 1.0/(m_fOuterRadius - m_fInnerRadius));
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fScaleDepth"), m_fRayleighScaleDepth);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fScaleOverScaleDepth"), (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "g"), m_g);
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "g2"), Math.pow(m_g, 2));
-	// 	gl.uniform1f(gl.getUniformLocation(pSpaceShader, "s2Test"), 0);
-	// }
-
-	// // MOON STUFF
-
-	// if (pSpaceShader) {
-	// 	// dissableProgram
-	// }
-
 	if (vec3.length(vCamera) >= m_fOuterRadius)
 	{
 	 	gl.frontFace(gl.CW);
@@ -219,7 +151,7 @@ function RenderFrameAtmosphere(nMilliseconds)
 		pGroundShader = m_shGroundFromAtmosphere;
 	}
 
-	if (pGroundShader)  
+	if (pGroundShader)
 	{
 		gl.useProgram(pGroundShader);
 		gl.uniform3f(gl.getUniformLocation(pGroundShader, "v3CameraPos"), vCamera[0], vCamera[1], vCamera[2]);
@@ -241,27 +173,11 @@ function RenderFrameAtmosphere(nMilliseconds)
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g"), m_g);
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g2"), Math.pow(m_g, 2));
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "s2Test"), 0);
-
-		//console.log(Math.pow(m_fOuterRadius, 2.0));
-		//console.log(m_fInnerRadius);
-		//console.log(Math.pow(m_fInnerRadius, 2.0));
-		//console.log("m_Kr-Esun: "+ m_Kr * m_ESun);
-		//console.log("fKmESun: "+ m_Km * m_ESun);
-		//console.log("fKr4PI: "+ m_Kr4PI);
-		//console.log("fKm4PI: "+  m_Km4PI);
-		//console.log("fScale: "+  1.0/(m_fOuterRadius - m_fInnerRadius));
-		//console.log("fScaleDepth: "+  m_fRayleighScaleDepth);
-		//console.log("fScaleOverScaleDepth: "+  (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
-		//console.log("g: "+  m_g);
-		//console.log("g2: "+  Math.pow(m_g, 2));
 	}
 
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
  	gl.frontFace(gl.CCW);
 
-
-	// SPHERE CREATION
-	// Disable groundShader
 
 	if (vec3.length(vCamera) >= m_fOuterRadius) {
 		gl.enable(gl.CULL_FACE);
@@ -294,8 +210,12 @@ function RenderFrameAtmosphere(nMilliseconds)
 		gl.uniform1f(gl.getUniformLocation(pSkyShader, "fScaleOverScaleDepth"), (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
 		gl.uniform1f(gl.getUniformLocation(pSkyShader, "g"), m_g);
 		gl.uniform1f(gl.getUniformLocation(pSkyShader, "g2"), Math.pow(m_g, 2));
+
+		// ## debug
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
+		gl.uniform1i(gl.getUniformLocation(pSkyShader, "uOpticalDepthLUT"), 0);
 	}
-	//console.log("v3CameraPos: "+vCamera[0] + " " +vCamera[1] + " " + vCamera[2]);
 	// TRY SETTING THE MOON AS LIGHT SOURCE
 
 	gl.frontFace(gl.CCW);
@@ -308,6 +228,27 @@ function RenderFrameAtmosphere(nMilliseconds)
  	gl.frontFace(gl.CCW);
 
  	updateUI(clock, auxAngle);
+}
+
+function tickGameEngine() {
+	resize(gl.canvas);
+
+    requestAnimFrame(tickGameEngine);
+
+	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupSceneHDR);
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+    RenderFrameAtmosphere(0.0);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+    drawScreenFillingTextureHDR(m_shFullScrQuad, textureFramebufferSetupSceneHDR);
+
+	handleKeys();
+
+	calculateDeltaTime();
+    animate();
 }
 
 function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight, fMieScaleHeight)
@@ -353,7 +294,7 @@ function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight
 				fRayleighDensityRatio = Math.exp(-(fHeight - fInnerRadius) * fScale / fRayleighScaleHeight);
 				fMieDensityRatio = Math.exp(-(fHeight - fInnerRadius) * fScale / fMieScaleHeight);
 			}
-			else 
+			else
 			{
 				// Smooth the transition from light to shadow (it is soft shadow after all)
 				fRayleighDensityRatio = m_pBuffer[nIndex - nSize * m_nChannels] * 0.5;
@@ -409,4 +350,55 @@ function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight
 	}
 
 	return m_pBuffer;
+}
+
+function createOpticalDepthLUT() {
+	var ext = gl.getExtension('OES_texture_float');
+	var ext2 = gl.getExtension('OES_texture_float_linear');
+
+	//createDebugFloatTexture();
+
+	opticalDepthLUT = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
+	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.viewportWidth, gl.viewportHeight, 0, gl.RGBA, gl.FLOAT, null);
+	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.FLOAT, debugFloatTextureBuffer);
+
+	const level = 0;
+	const internalFormat = gl.RGBA;
+	const width = 64;
+	const height = 64;
+	const border = 0;
+	const format = gl.RGBA;
+	const type = gl.FLOAT;
+
+	gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, m_pbOpticalDepth);
+	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 0);
+	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 0);
+
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+	gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+
+function createDebugFloatTexture() {
+	var nSize = 64;
+	var m_nChannels = 4;
+	debugFloatTextureBuffer = new Float32Array(nSize * nSize * m_nChannels);
+
+	var nIndex = 0;
+	for (var x = 0; x < nSize; x++) {
+		for (var y = 0; y < nSize; y++) {
+
+			var color = 255.0;
+			debugFloatTextureBuffer[nIndex++] = color; 		// R Channel
+			debugFloatTextureBuffer[nIndex++] = 0.0; 		// G Channel
+			debugFloatTextureBuffer[nIndex++] = 0.0; 		// B Channel
+			debugFloatTextureBuffer[nIndex++] = color; 		// A Channel
+
+		}
+	}
 }
