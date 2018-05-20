@@ -64,7 +64,9 @@ function initGameEngine() {
 
 	createFramebufferHDR();
 
-	m_3DCamera = initCameraSpace();
+	//initCameraSpace();
+	m_3DCamera = new Camera3D();
+	m_3DCamera.initCameraSpace();
 
 	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
 	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
@@ -101,6 +103,8 @@ function initGameEngine() {
 	 screenFillingPlaneRenderData = initBuffersPlane();
 	 planetGeomRenderData = generateSphereBuffersUpgraded(m_fInnerRadius, 100, 50);
 	 atmosphereGeomRenderData = generateSphereBuffersUpgraded(m_fOuterRadius, 300, 150);
+	 // GIZMOS GEOMETRY
+	 initBuffersCube();
 
 
 	 // CREATE SHADERS;
@@ -110,6 +114,10 @@ function initGameEngine() {
 	 m_shSkyFromSpace = createShaderByFilename(SkyFromSpace_vs, SkyFromSpace_fs);
 	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
 	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
+
+	 // GIZMOS SHADER
+	 m_shGizmos = createShaderByFilename(SimpleGeometryShader_vs, SimpleGeometryShader_fs);
+
 	 // INIT MOON PIXEL BUFFER
 
 	 // INIT EARTH PIXEL BUFFER
@@ -136,8 +144,8 @@ function RenderFrameAtmosphere()
 
 	var vCamera = vec3.create();
 	vCamera = m_3DCamera.Position;
-	var vUnitCamera = vec3.create();
-	vec3.scale(vUnitCamera, vCamera, vec3.length(vCamera));
+	//var vUnitCamera = vec3.create();
+	//vec3.scale(vUnitCamera, vCamera, vec3.length(vCamera));
 
 	var length = vec3.length(m_vLight);
 	m_vLightDirection = vec3.create();
@@ -234,7 +242,7 @@ function tickGameEngine() {
 	resize(gl.canvas);
 
     requestAnimFrame(tickGameEngine);
-
+	gl.enable(gl.DEPTH_TEST);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupSceneHDR);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 
@@ -243,9 +251,14 @@ function tickGameEngine() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 
-    drawScreenFillingTextureHDR(m_shFullScrQuad, textureFramebufferSetupSceneHDR);
+	drawScreenFillingTextureHDR(m_shFullScrQuad, textureFramebufferSetupSceneHDR);
+	gl.disable(gl.CULL_FACE);
+	gl.disable(gl.DEPTH_TEST);
+	//renderCameraRotationGizmos();
 
 	handleKeys();
+
+	m_3DCamera.debugCamera();
 
 	calculateDeltaTime();
     animate();

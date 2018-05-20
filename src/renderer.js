@@ -334,6 +334,78 @@ function renderCube(cubeRenderData, bUseView, matrixTransform, translateAmount, 
 	gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 }
 
+function renderGizmo(cubeRenderData, bUseView, matrixTransform, translateAmount, scaleAmount, color) {
+	var shaderProgram = m_shGizmos;
+	gl.useProgram(shaderProgram);
+
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+	shaderProgram.modelMatrixUniform = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+	shaderProgram.viewMatrixUniform = gl.getUniformLocation(shaderProgram, "uViewMatrix");
+	shaderProgram.projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjectionMatrix");
+
+	shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "uColor");
+
+	mat4.identity(mMatrix);
+	mat4.identity(vMatrix);
+	mat4.identity(pMatrix);
+
+	if (bUseView) {
+		//vMatrix = m_3DCamera.GetViewMatrix();
+		
+	}
+	//console.log(matrixTransform);
+
+	//pMatrix = m_3DCamera.GetProjectionMatrix();
+
+	//mat4.translate(mMatrix, mMatrix, [translateAmount[0], translateAmount[1], translateAmount[2]]);
+	var aux = mat4.create();
+	mat4.fromScaling(mMatrix, [scaleAmount[0], scaleAmount[1], scaleAmount[2]]);
+	
+	if (bUseView) {
+		var _auxMat = mat4.create();
+		mat4.rotate(_auxMat, _auxMat, clock, vec3.fromValues(1.0, 0.0, 0.0));
+		//mat4.invert(_auxMat, matrixTransform);
+		mat4.multiply(mMatrix, _auxMat, mMatrix);
+
+
+		//m_3DCamera.qRotation[0] *= -1.0;
+        //m_3DCamera.qRotation[1] *= -1.0;
+		//m_3DCamera.qRotation[2] *= -1.0;
+		//var _auxMat2 = mat4.create();
+        //mat4.fromQuat(_auxMat2, m_3DCamera.qRotation);
+        //m_3DCamera.qRotation[0] *= -1.0;
+        //m_3DCamera.qRotation[1] *= -1.0;
+		//m_3DCamera.qRotation[2] *= -1.0;
+
+		//var _auxMat = mat4.create();
+		//mat4.invert(_auxMat, matrixTransform);
+		//mat4.multiply(mMatrix, _auxMat, mMatrix);
+
+		//mat4.multiply(mMatrix, _auxMat2, mMatrix);
+	}
+	//console.log(_auxMat2);
+
+	
+	//mat4.multiply(mMatrix, mMatrix, aux);
+
+	gl.uniformMatrix4fv(shaderProgram.modelMatrixUniform, false, mMatrix);
+	gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, vMatrix);
+	gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, pMatrix);
+
+	gl.uniform3f(shaderProgram.colorUniform, color[0], color[1], color[2]);
+
+	gl.uniform1f(gl.getUniformLocation(shaderProgram, "uOpacity"), 1.0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, cubeRenderData.cubeVertexPositionBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeRenderData.cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeRenderData.cubeVertexIndexBuffer);
+	gl.drawElements(gl.TRIANGLES, cubeRenderData.cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+	gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+}
 
 function renderRay(bUseView, matrixTransform) {
 	gl.useProgram(shaderProgram);
@@ -368,8 +440,8 @@ function renderRay(bUseView, matrixTransform) {
 	mat4.multiply(mMatrix, mMatrix, aux);
 	if (bUseView) {
 		//mat4.multiply(mMatrix, mMatrix, matrixTransform);
-		mat4.invert(matrixTransform, matrixTransform);
-		mat4.multiply(mMatrix, matrixTransform, mMatrix);
+		//mat4.invert(matrixTransform, matrixTransform);
+		//mat4.multiply(mMatrix, matrixTransform, mMatrix);
 	}
 
 
@@ -466,6 +538,15 @@ function drawShapesAtCameraPosition(positionCamera, PitchCamera, YawCamera) {
 
 	m_3DCamera.SetPositionAndDirectionCamera(auxPositionCamera, auxPitchCamera, auxYawCamera);
 }
+
+function renderCameraRotationGizmos() {
+	//renderGizmo(cubeRenderData, true, m_3DCamera.GetViewMatrix(), vec3.fromValues(-0.75, -0.5, 0.0), vec3.fromValues(0.005, 0.1, 0.1), vec3.fromValues(1.0, 0.0, 0.0));
+	//renderGizmo(cubeRenderData, true, m_3DCamera.GetViewMatrix(), vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.00025, 0.005, 0.1), vec3.fromValues(0.0, 0.0, 1.0));
+	renderGizmo(cubeRenderData, true, m_3DCamera.GetViewMatrix(), vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.02, 0.5, 0.5), vec3.fromValues(1.0, 0.0, 0.0));
+}
+
+
+
 
 function renderPlanet(planetGeomRenderData, shaderProgram, texture) {
 	//renderSphereSurface(planetGeomRenderData, vec3.fromValues(0.0, 0.0, 0.0), 1.0, vec3.fromValues(1.0, 0.0, 0.0), 1.0);

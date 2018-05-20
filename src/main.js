@@ -32,7 +32,7 @@ function initGL(canvas) {
         console.log(canvas.height);
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
-
+        gl.aspectRatio = canvas.width / canvas.height;
         resize(gl.canvas);
     } catch (e) {
     }
@@ -42,7 +42,7 @@ function initGL(canvas) {
 }
 
 function degToRad(degrees) {
-    return degrees * Math.PI / 180;
+    return degrees * (0.01745329251994329576923690768489);
 }
 
 function resize(canvas) {

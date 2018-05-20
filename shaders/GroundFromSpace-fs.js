@@ -18,6 +18,7 @@ var GroundFromSpace_fs = {
             //gl_FragColor = vec4(vTextureCoord.xy, 0.0, 1.0); return;
             gl_FragColor = vec4(vec3(primaryColor + 0.25 * secondaryColor).xyz, 1.0);
             vec3 colorTexture = 1.0 * texture2D(uSamplerTexture, uv).xyz;
+            colorTexture = vec3(0.0, 0.0, 0.0);
             gl_FragColor.xyz = primaryColor + 1.2 * colorTexture * secondaryColor;
             //gl_FragColor.xyz = colorTexture;
 
