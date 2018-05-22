@@ -4,7 +4,8 @@ var zRot = 0;
 
 var lastTime = 0;
 
-var uiSpeed = 1.0;
+var uiSpeed = 10.0; // 70 for super quick solar orbit
+var enableRotation = false;
 
 var elapsedFrame;
 
@@ -161,7 +162,7 @@ function renderSphereSurfaceAdv(sphereRenderData, shaderProgram) {
 	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
-function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, texture) {
+function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, posVecTransform, scaleVecTransform, texture) {
 
 	gl.disableVertexAttribArray(m_shFullScrQuad.textureCoordAttribute);
 	var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
@@ -190,7 +191,13 @@ function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, text
 	var pMatrix = mat4.create();
 
 	mat4.identity(mMatrix);
+
+	var aux = mat4.create();
+	mat4.translate(mMatrix, mMatrix, [posVecTransform[0], posVecTransform[1], posVecTransform[2]]);
+	mat4.fromScaling(aux, [scaleVecTransform[0], scaleVecTransform[1], scaleVecTransform[2]]);
+	mat4.multiply(mMatrix, mMatrix, aux);
 	mat4.rotate(mMatrix, mMatrix, degToRad(earthAngle), [0, 1, 0]);
+
 	mat4.identity(vMatrix);
 	mat4.identity(pMatrix);
 
@@ -259,8 +266,6 @@ function renderPlane(planeRenderData, translatePos, scaleAmount, anglesRot, axis
 	var aux = mat4.create();
 	mat4.fromScaling(aux, [scaleAmount[0], scaleAmount[1], scaleAmount[2]]);
 	mat4.multiply(mMatrix, mMatrix, aux);
-
-
 
 	gl.uniformMatrix4fv(shaderProgram.modelMatrixUniform, false, mMatrix);
 
@@ -461,15 +466,19 @@ function renderRay(bUseView, matrixTransform) {
 
 function animate() {
     var timeNow = new Date().getTime();
-    if (lastTime != 0) {
+	var radius = 70.0;
+	
+	if (lastTime != 0) {
         var elapsed = timeNow - lastTime;
         elapsedFrame = elapsed;
         clock = timeNow - time_start;
         clock /= 1000;
         //console.log("COS: "+Math.cos(degToRad(clock*10)));
-        //console.log(clock);
-        //m_vLight = vec3.fromValues(Math.cos(degToRad(clock*0.5*uiSpeed)), 0.0, Math.sin(degToRad(clock*0.5*uiSpeed))); // BUENA
-        //m_vLight = vec3.fromValues(Math.cos(degToRad(clock*0.5)), 0.0, Math.sin(degToRad(clock*0.5)));
+		//console.log(clock);
+		if (enableRotation) {
+			m_vLight = vec3.fromValues(radius * Math.cos(degToRad(clock*0.5*uiSpeed)), radius * 0.0, radius * Math.sin(degToRad(clock*0.5*uiSpeed))); // BUENA
+		}
+        //m_vLight = vec3.fromValues(radius * Math.cos(degToRad(clock*0.5)), radius * 0.0, radius * Math.sin(degToRad(clock*0.5)));
 
         auxAngle += 0.001 * elapsed;
 
@@ -549,11 +558,7 @@ function renderCameraRotationGizmos() {
 
 
 function renderPlanet(planetGeomRenderData, shaderProgram, texture) {
-	//renderSphereSurface(planetGeomRenderData, vec3.fromValues(0.0, 0.0, 0.0), 1.0, vec3.fromValues(1.0, 0.0, 0.0), 1.0);
-	//renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, texture)
-
-	//renderSphereSurfaceAdv(planetGeomRenderData, shaderProgram);
-	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, texture);
+	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(1.0, 1.0, 1.0), texture);
 }
 
 function renderAtmosphere(atmosphereGeomRenderData, shaderProgram) {

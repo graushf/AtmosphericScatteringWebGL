@@ -94,6 +94,7 @@ Camera3D.prototype.CameraSetPosAndRot = function(position, pitch, yaw, roll, WID
 
 Camera3D.prototype.UpdateView = function()
 {
+    //this.debugCamera();
     // temporary frame quaternion from pitch, yaw, roll
     var key_quat = quat.create();
     quat.fromEuler(key_quat, this.key_pitch, this.key_yaw, this.key_roll);
@@ -215,7 +216,7 @@ Camera3D.prototype.GetPosition = function() {
     return this.Position;
 }
 
-Camera3D.prototype.SetPosition = function() {
+Camera3D.prototype.SetPosition = function(position) {
     this.Position = position;
 }
 
@@ -224,7 +225,24 @@ Camera3D.prototype.GetVelocity = function() {
 }
 
 Camera3D.prototype.debugCamera = function() {
-    
+    //console.log("this.pitch: "+this.key_pitch);
+    //console.log("this.yaw: "+this.key_yaw);
+    //console.log("this.roll: "+this.key_roll);
+    //console.log("viewMatrix: "+ this._viewMatrix);
+    //console.log("position: "+this.Position);
+    if (this.key_pitch != 0.0) {
+        console.log("key_pitch: "+this.key_pitch);
+    }
+    if (this.key_yaw != 0.0) {
+        console.log("key_yaw: "+this.key_yaw);
+    }
+    if (this.key_roll != 0.0) {
+        console.log("key_roll: "+this.key_roll);
+        console.log("pos: "+this.Position);
+    }
+    //if (this.Positio)
+    //console.log("pos: "+this.Position);
+
 }
 
 Camera3D.prototype.initCameraSpace = function() {
@@ -234,10 +252,14 @@ Camera3D.prototype.initCameraSpace = function() {
 }
 
 Camera3D.prototype.initCameraEarth = function() {
-    var pos = vec3.fromValues(-4.9809, -0.1385, 8.7281);
+    /* var pos = vec3.fromValues(-4.9809, -0.1385, 8.7281);
     var qOrientation = quat.fromValues(0.6231, -0.6003, -0.3505, 0.3583);
     quat.normalize(qOrientation, qOrientation);
     this.CameraSetPosAndRot(pos, qOrientation, gl.viewportWidth, gl.viewportHeight);
     console.log(this);
-    console.log("bla");
+    console.log("bla"); */
+    var pos = vec3.fromValues(-3.74, 0.27, 9.33);
+    //this.SetPosition(pos);
+    this.CameraSetPosAndRot(pos, 10.0, 120, 97.0,  gl.viewportWidth, gl.viewportHeight);
+    //CameraSetPosAndRot = function(position, pitch, yaw, roll, WIDTH, HEIGHT)
 }
