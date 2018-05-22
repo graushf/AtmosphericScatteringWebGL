@@ -46,16 +46,24 @@ var planetGeomRenderData;
 var atmosphereGeomRenderData;
 
 var texturePlanet;
+var textureMoon;
+
+var textureSun;
 
 var textureDebug;
 
 var pGroundShader;
 var pSkyShader;
 
+var pSpaceShader;
+var pSunShader;
+
 var exposureQuantity = 0.8;
 
 var debugFloatTexture;
 var opticalDepthLUT;
+
+var cameraInSpace = undefined;
 
 function initGameEngine() {
 
@@ -66,10 +74,12 @@ function initGameEngine() {
 
 	//initCameraSpace();
 	m_3DCamera = new Camera3D();
-	m_3DCamera.initCameraSpace();
+	//m_3DCamera.initCameraSpace();
+	m_3DCamera.initCameraEarth();
 
 	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
 	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
+	m_vLight = vec3.fromValues(30, 0.0, 35.355);
 	var length = vec3.length(m_vLight);
 	m_vLightDirection = vec3.create();
 	vec3.scale(m_vLightDirection, m_vLight, 1/length);
@@ -115,32 +125,36 @@ function initGameEngine() {
 	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
 	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
 
+	 // Looking at space
+	 m_shSpaceFromSpace = createShaderByFilename(SpaceFromSpace_vs, SpaceFromSpace_fs);
+	 //m_shSpaceFromAtmosphere = createShadersByFilename();
+
 	 // GIZMOS SHADER
 	 m_shGizmos = createShaderByFilename(SimpleGeometryShader_vs, SimpleGeometryShader_fs);
 
 	 // INIT MOON PIXEL BUFFER
+	 textureMoon = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/moon_texture.jpg");
 
 	 // INIT EARTH PIXEL BUFFER
 	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/BlueMarbleCloudy.png");
 	 textureDebug = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/nature.jpg");
+
+	 // INIT SUN TEXTURES
+	 textureSun = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/8k_sun.jpg");
 
 	 makeOpticalDepthBuffer(10.0, 10.25, 0.25, 0.10)
 
 	 initManagerUI();
 }
 
-function RenderFrameAtmosphere()
+function renderPlanetAndAtmosphere()
 {
 	m_fWavelength4[0] = Math.pow(m_fWavelength[0], 4.0);
 	m_fWavelength4[1] = Math.pow(m_fWavelength[1], 4.0);
 	m_fWavelength4[2] = Math.pow(m_fWavelength[2], 4.0);
 
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-
-	var mViewMatrix = mat4.create();
-	mViewMatrix = m_3DCamera.GetViewMatrix();
-
+	//var mViewMatrix = mat4.create();
+	//mViewMatrix = m_3DCamera.GetViewMatrix();
 
 	var vCamera = vec3.create();
 	vCamera = m_3DCamera.Position;
@@ -153,9 +167,11 @@ function RenderFrameAtmosphere()
 
 	if (vec3.length(vCamera) >= m_fOuterRadius)
 	{
+		cameraInSpace = true;
 	 	gl.frontFace(gl.CW);
 		pGroundShader = m_shGroundFromSpace;
 	} else {
+		cameraInSpace = false;
 		pGroundShader = m_shGroundFromAtmosphere;
 	}
 
@@ -186,12 +202,16 @@ function RenderFrameAtmosphere()
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
  	gl.frontFace(gl.CCW);
 
+	//gl.disable(gl.DEPTH_TEST);
+	gl.enable(gl.BLEND);
+	gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
 	if (vec3.length(vCamera) >= m_fOuterRadius) {
+		cameraInSpace = true; 
 		gl.enable(gl.CULL_FACE);
-
 		pSkyShader = m_shSkyFromSpace;
 	} else {
+		cameraInSpace = false;
 		gl.disable(gl.CULL_FACE);
 		m_ESun = 20.0;
 		pSkyShader = m_shSkyFromAtmosphere;
@@ -233,11 +253,72 @@ function RenderFrameAtmosphere()
 	// Render Sphere ATMOSPHERE
  	renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
 	gl.frontFace(gl.CW);
- 	gl.frontFace(gl.CCW);
+	 gl.frontFace(gl.CCW);
+	 
+	gl.disable(gl.BLEND);
+	gl.enable(gl.DEPTH_TEST);
 
  	updateUI(clock, auxAngle);
 }
 
+function renderMoon() {
+	var moonPosition = vec3.fromValues(30.0, 0.0, 0.0);
+
+	m_fWavelength4[0] = Math.pow(m_fWavelength[0], 4.0);
+	m_fWavelength4[1] = Math.pow(m_fWavelength[1], 4.0);
+	m_fWavelength4[2] = Math.pow(m_fWavelength[2], 4.0);
+
+	//var mViewMatrix = mat4.create();
+	//mViewMatrix = m_3DCamera.GetViewMatrix();
+
+	var vCamera = vec3.create();
+	vCamera = m_3DCamera.Position;
+	//var vUnitCamera = vec3.create();
+	//vec3.scale(vUnitCamera, vCamera, vec3.length(vCamera));
+
+	m_vLightDirection = vec3.create();
+	m_vLightDirection = vec3.fromValues(m_vLight[0] - moonPosition[0], m_vLight[1] - moonPosition[1], m_vLight[2] - moonPosition[2]);
+	//m_vLightDirection = vec3.fromValues( moonPosition[0] - m_vLight[0], moonPosition[1] - m_vLight[1], moonPosition[2] - m_vLight[2]);
+	var length = vec3.length(m_vLightDirection);
+	vec3.scale(m_vLightDirection, m_vLightDirection, 1/length);
+
+
+	pSpaceShader = m_shGroundFromSpace;
+
+	if (pSpaceShader == m_shGroundFromSpace)
+	{
+		gl.useProgram(pSpaceShader);
+		gl.uniform3f(gl.getUniformLocation(pSpaceShader, "v3CameraPos"), vCamera[0], vCamera[1], vCamera[2]);
+		gl.uniform3f(gl.getUniformLocation(pSpaceShader, "v3LightPos"), m_vLightDirection[0], m_vLightDirection[1], m_vLightDirection[2]);
+		gl.uniform3f(gl.getUniformLocation(pSpaceShader, "v3InvWavelength"), 1/m_fWavelength4[0], 1/m_fWavelength4[1], 1/m_fWavelength4[2]);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fCameraHeight"), vec3.length(vCamera));
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fCameraHeight2"), Math.pow(vec3.length(vCamera), 2.0));
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fInnerRadius"), m_fInnerRadius);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fInnerRadius2"), Math.pow(m_fInnerRadius, 2.0))
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fOuterRadius"), m_fOuterRadius);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fOuterRadius2"), Math.pow(m_fOuterRadius, 2.0));
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKrESun"), m_Kr * m_ESun);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKmESun"), m_Km * m_ESun);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKr4PI"), m_Kr4PI);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fKm4PI"), m_Km4PI);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fScale"), 1.0/(m_fOuterRadius - m_fInnerRadius));
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fScaleDepth"), m_fRayleighScaleDepth);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "fScaleOverScaleDepth"), (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "g"), m_g);
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "g2"), Math.pow(m_g, 2));
+		gl.uniform1f(gl.getUniformLocation(pSpaceShader, "s2Test"), 0);
+	}
+	gl.frontFace(gl.CW);
+
+	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, pSpaceShader, vec3.fromValues(30.0, 0.0, 0.0), vec3.fromValues(0.2, 0.2, 0.2), textureMoon);
+}
+
+function renderSun() {
+	pSunShader = m_shSpaceFromSpace;
+	gl.useProgram(pSunShader);
+	gl.frontFace(gl.CW);
+	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, pSunShader, m_vLight, vec3.fromValues(0.3, 0.3, 0.3), textureSun);
+}
 function tickGameEngine() {
 	resize(gl.canvas);
 
@@ -246,7 +327,13 @@ function tickGameEngine() {
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupSceneHDR);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 
-    RenderFrameAtmosphere(0.0);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	
+	if (cameraInSpace != undefined && cameraInSpace) {
+		renderSun();
+	}
+	//renderMoon();
+    renderPlanetAndAtmosphere();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -257,8 +344,6 @@ function tickGameEngine() {
 	//renderCameraRotationGizmos();
 
 	handleKeys();
-
-	m_3DCamera.debugCamera();
 
 	calculateDeltaTime();
     animate();

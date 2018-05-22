@@ -95,8 +95,8 @@ SkyFromSpace_vs = {
             debugColor = v3FrontColor * (v3InvWavelength * fKrESun);
         
             // Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
-            frontSecondaryColor.rgb = v3FrontColor * fKmESun;
-            frontPrimaryColor.rgb = v3FrontColor * (v3InvWavelength * fKrESun);
+            frontSecondaryColor.rgb = v3FrontColor * fKmESun; // Mie color, not dependent on wavelength
+            frontPrimaryColor.rgb = v3FrontColor * (v3InvWavelength * fKrESun); // Rayleigh color, dependent on wavelength
             gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
             v3Direction = v3CameraPos - v3Pos;
         }

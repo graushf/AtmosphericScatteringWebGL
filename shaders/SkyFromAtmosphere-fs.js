@@ -27,6 +27,7 @@ SkyFromAtmosphere_fs = {
             vec3 col = GetRayleighPhase(fCos2) *  frontColor + GetMiePhase(fCos, fCos2, g, g2) * frontSecondaryColor;
 
             gl_FragColor = vec4(col, 1.0); return;
+            gl_FragColor = vec4(debugColor, 1.0);
         }
 
         float GetMiePhase(float fCos, float fCos2, float g, float g2)
