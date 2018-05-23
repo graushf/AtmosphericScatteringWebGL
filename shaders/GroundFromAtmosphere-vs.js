@@ -1,11 +1,11 @@
 var GroundFromAtmosphere_vs = {
-    "data": `
-        attribute vec3 aVertexPosition;
-        //attribute vec2 aTextureCoord;
+    "data": `#version 300 es
+        in vec3 aVertexPosition;
+        //in vec2 aTextureCoord;
 
-        varying vec2 vTextureCoord;
-        varying vec3 primaryColor;
-        varying vec3 secondaryColor;
+        out vec2 vTextureCoord;
+        out vec3 primaryColor;
+        out vec3 secondaryColor;
 
         uniform mat4 uModelMatrix;
         uniform mat4 uViewMatrix;

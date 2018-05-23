@@ -40,6 +40,9 @@ var m_shGroundFromAtmosphere;
 var m_shSpaceFromSpace;
 var m_shSpaceFromAtmosphere;
 
+// LUT shaders
+var m_shSkyFromSpaceLUT;
+
 var m_pBuffer;
 
 var planetGeomRenderData;
@@ -63,7 +66,9 @@ var exposureQuantity = 0.8;
 var debugFloatTexture;
 var opticalDepthLUT;
 
+// config parameters
 var cameraInSpace = undefined;
+var renderWithLUT = false;
 
 function initGameEngine() {
 
@@ -74,8 +79,8 @@ function initGameEngine() {
 
 	//initCameraSpace();
 	m_3DCamera = new Camera3D();
-	//m_3DCamera.initCameraSpace();
-	m_3DCamera.initCameraEarth();
+	m_3DCamera.initCameraSpace();
+	//m_3DCamera.initCameraEarth();
 
 	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
 	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
@@ -105,9 +110,10 @@ function initGameEngine() {
 	 m_fWavelength4[2] = Math.pow(m_fWavelength[2], 4.0);
 
 	 m_fRayleighScaleDepth = 0.25;
-	 m_fMieScaleDepth = 0.1;
+	 //m_fMieScaleDepth = 0.1;
+	 m_fMieScaleDepth = 0.25;
 	 m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth);
-	 createOpticalDepthLUT();
+	 //createOpticalDepthLUT();
 
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
 	 screenFillingPlaneRenderData = initBuffersPlane();
@@ -124,13 +130,16 @@ function initGameEngine() {
 	 m_shSkyFromSpace = createShaderByFilename(SkyFromSpace_vs, SkyFromSpace_fs);
 	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
 	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
+	 if (renderWithLUT) {
+		//m_shSkyFromSpaceLUT = createShaderByFilename(SkyFromSpaceLUT_vs, SkyFromSpaceLUT_fs);
+	 }
 
 	 // Looking at space
 	 m_shSpaceFromSpace = createShaderByFilename(SpaceFromSpace_vs, SpaceFromSpace_fs);
 	 //m_shSpaceFromAtmosphere = createShadersByFilename();
 
 	 // GIZMOS SHADER
-	 m_shGizmos = createShaderByFilename(SimpleGeometryShader_vs, SimpleGeometryShader_fs);
+	 //m_shGizmos = createShaderByFilename(SimpleGeometryShader_vs, SimpleGeometryShader_fs);
 
 	 // INIT MOON PIXEL BUFFER
 	 textureMoon = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/moon_texture.jpg");
@@ -142,7 +151,6 @@ function initGameEngine() {
 	 // INIT SUN TEXTURES
 	 textureSun = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/8k_sun.jpg");
 
-	 makeOpticalDepthBuffer(10.0, 10.25, 0.25, 0.10)
 
 	 initManagerUI();
 }
@@ -209,7 +217,11 @@ function renderPlanetAndAtmosphere()
 	if (vec3.length(vCamera) >= m_fOuterRadius) {
 		cameraInSpace = true; 
 		gl.enable(gl.CULL_FACE);
-		pSkyShader = m_shSkyFromSpace;
+		if (renderWithLUT) {
+			pSkyShader = m_shSkyFromSpaceLUT;
+		} else {
+			pSkyShader = m_shSkyFromSpace;
+		}
 	} else {
 		cameraInSpace = false;
 		gl.disable(gl.CULL_FACE);
@@ -240,9 +252,11 @@ function renderPlanetAndAtmosphere()
 		gl.uniform1f(gl.getUniformLocation(pSkyShader, "g2"), Math.pow(m_g, 2));
 
 		// ## debug
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
-		gl.uniform1i(gl.getUniformLocation(pSkyShader, "uOpticalDepthLUT"), 0);
+		if (renderWithLUT) {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
+			gl.uniform1i(gl.getUniformLocation(pSkyShader, "uTextureLUT"), 0);
+		}
 	}
 	// TRY SETTING THE MOON AS LIGHT SOURCE
 

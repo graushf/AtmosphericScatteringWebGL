@@ -1,17 +1,18 @@
 var SpaceFromSpace_fs = {
-    data: `
+    data: `#version 300 es
         precision mediump float;
 
         uniform sampler2D uSamplerTexture;
 
-        varying vec2 vTextureCoord;
-        varying vec4 scatteredColor;
+        in vec2 vTextureCoord;
+        in vec4 scatteredColor;
+
+        out vec4 outputColor;
 
         void main(void)
         {
-            gl_FragColor = scatteredColor * texture2D(uSamplerTexture, vTextureCoord);
-            gl_FragColor = texture2D(uSamplerTexture, vTextureCoord);
-            //gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            outputColor = scatteredColor * texture(uSamplerTexture, vTextureCoord);
+            outputColor = texture(uSamplerTexture, vTextureCoord);
         }
     `,
     type: "x-shader/x-fragment"

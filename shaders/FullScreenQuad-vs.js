@@ -1,9 +1,11 @@
 var FullScreenQuad_vs = {
-    data: `
-    attribute vec3 aVertexPosition;
-    attribute vec2 aTextureCoord;
+    data: `#version 300 es
+    precision mediump float;
 
-    varying vec2 vTextureCoord;
+    in vec3 aVertexPosition;
+    in vec2 aTextureCoord;
+
+    out vec2 vTextureCoord;
 
     uniform mat4 model;
 

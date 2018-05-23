@@ -1,18 +1,16 @@
-SkyFromSpace_fs = {
-    "data": `#version 300 es
+SkyFromSpaceLUT_fs = {
+    "data": `
         precision mediump float;
 
         uniform vec3 v3LightPos;
         uniform float g;
         uniform float g2;
         
-        in vec3 v3Direction;
-        in vec3 frontPrimaryColor;
-        in vec3 frontSecondaryColor;
+        varying vec3 v3Direction;
+        varying vec3 frontPrimaryColor;
+        varying vec3 frontSecondaryColor;
         
-        in vec3 debugColor;
-
-        out vec4 outputColor;
+        varying vec3 debugColor;
         
         float GetMiePhase(float fCos, float fCos2, float g, float g2);
         
@@ -21,8 +19,8 @@ SkyFromSpace_fs = {
             float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
             float fCos2 = fCos*fCos;
             float fMiePhase = GetMiePhase(fCos, fCos2, g, g2);
-            outputColor.xyz = frontPrimaryColor + fMiePhase * frontSecondaryColor;
-            outputColor.a = 1.0;
+            gl_FragColor.xyz = frontPrimaryColor + fMiePhase * frontSecondaryColor;
+            gl_FragColor.a = 1.0;
 
             //gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
         }

@@ -1,14 +1,14 @@
 SkyFromAtmosphere_vs = {
-    "data": `
+    "data": `#version 300 es
         precision mediump float;
 
-        attribute vec3 aVertexPosition;
+        in vec3 aVertexPosition;
         
-        varying vec3 v3Direction;
-        varying vec3 frontColor;
-        varying vec3 frontSecondaryColor;
+        out vec3 v3Direction;
+        out vec3 frontColor;
+        out vec3 frontSecondaryColor;
         
-        varying vec3 debugColor;
+        out vec3 debugColor;
         
         uniform mat4 uModelMatrix;
         uniform mat4 uViewMatrix;
@@ -48,10 +48,6 @@ SkyFromAtmosphere_vs = {
         {
             float x = 1.0 - fCos;
             return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
-        }
-        
-        vec4 GetDepth(float x, float y) {
-            return texture2D(uOpticalDepthLUT, vec2(x,y));
         }
         
         void main(void)

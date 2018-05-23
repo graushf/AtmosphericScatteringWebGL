@@ -1,15 +1,17 @@
 var GroundFromAtmosphere_fs = {
-    "data": `
+    "data": `#version 300 es
         precision mediump float;
 
-        //varying vec2 vTextureCoord;
+        //in vec2 vTextureCoord;
 
-        varying vec3 primaryColor;
-        varying vec3 secondaryColor;
+        in vec3 primaryColor;
+        in vec3 secondaryColor;
+
+        out vec4 outputColor;
 
         void main() {
-            //gl_FragColor = vec4(vTextureCoord.xy, 0.0, 1.0); return;
-            gl_FragColor = vec4(primaryColor + 0.25 * secondaryColor, 1.0);
+            //outputColor = vec4(vTextureCoord.xy, 0.0, 1.0); return;
+            outputColor = vec4(primaryColor + 0.25 * secondaryColor, 1.0);
         }
     `,
     "type": "x-shader/x-fragment"

@@ -1,10 +1,10 @@
 var SpaceFromSpace_vs = {
-    data: `
-        attribute vec3 aVertexPosition;
-        attribute vec2 aTextureCoord;
+    data: `#version 300 es
+        in vec3 aVertexPosition;
+        in vec2 aTextureCoord;
 
-        varying vec4 scatteredColor;
-        varying vec2 vTextureCoord;
+        out vec4 scatteredColor;
+        out vec2 vTextureCoord;
         
         uniform mat4 uModelMatrix;
         uniform mat4 uViewMatrix;

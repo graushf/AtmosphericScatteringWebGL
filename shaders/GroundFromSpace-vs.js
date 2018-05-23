@@ -1,15 +1,15 @@
 var GroundFromSpace_vs = {
-    "data": `
+    "data": `#version 300 es
         precision mediump float;
 
-        attribute vec3 aVertexPosition;
-        attribute vec2 aTextureCoord;
+        in vec3 aVertexPosition;
+        in vec2 aTextureCoord;
         
-        varying vec2 vTextureCoord;
-        varying vec3 primaryColor;
-        varying vec3 secondaryColor;
+        out vec2 vTextureCoord;
+        out vec3 primaryColor;
+        out vec3 secondaryColor;
         
-        varying vec3 v3Debug;
+        out vec3 v3Debug;
         
         uniform mat4 uModelMatrix;
         uniform mat4 uViewMatrix;

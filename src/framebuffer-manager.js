@@ -33,8 +33,9 @@ function createFramebuffer() {
 }
 
 function createFramebufferHDR() {
-	var ext = gl.getExtension('OES_texture_float');
-	var ext2 = gl.getExtension('OES_texture_float_linear');
+	var ext = gl.getExtension('EXT_color_buffer_float');
+	//var ext = gl.getExtension('OES_texture_float');
+	//var ext2 = gl.getExtension('OES_texture_float_linear');
 
 	framebufferSetupSceneHDR = gl.createFramebuffer();
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebufferSetupSceneHDR);
@@ -42,7 +43,7 @@ function createFramebufferHDR() {
 	var texture = createAndSetupTexture();
 	textureFramebufferSetupSceneHDR = texture;
 
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.viewportWidth, gl.viewportHeight, 0, gl.RGBA, gl.FLOAT, null);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, gl.viewportWidth, gl.viewportHeight, 0, gl.RGBA, gl.FLOAT, null);
 
 	var renderbuffer = gl.createRenderbuffer();
 	gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
@@ -50,4 +51,8 @@ function createFramebufferHDR() {
 
 	gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
 	gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+
+	if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+		console.log("The framebuffer got completed succesfully")
+	}
 }

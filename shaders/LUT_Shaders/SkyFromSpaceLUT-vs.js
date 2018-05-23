@@ -1,13 +1,13 @@
-SkyFromSpace_vs = {
-    "data": `#version 300 es
+SkyFromSpaceLUT_vs = {
+    "data": `
         precision mediump float;
 
-        in vec3 aVertexPosition;
+        attribute vec3 aVertexPosition;
         //attribute vec2 aTextureCoord;
         
-        out vec3 v3Direction;
-        out vec3 frontPrimaryColor;
-        out vec3 frontSecondaryColor;
+        varying vec3 v3Direction;
+        varying vec3 frontPrimaryColor;
+        varying vec3 frontSecondaryColor;
         
         uniform mat4 uModelMatrix;
         uniform mat4 uViewMatrix;
@@ -30,15 +30,24 @@ SkyFromSpace_vs = {
         uniform float fScaleDepth;					// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
         uniform float fScaleOverScaleDepth;			// fScale / fScaleDepth
         
-        out vec3 debugColor;
+        uniform sampler2D uTextureLUT;
+
+        varying vec3 debugColor;
         
-        const int nSamples = 2;
+        const int nSamples = 10;
         const float fSamples = 2.0;
+        
+        #define DELTA 0.000001
         
         float scale(float fCos)
         {
             float x = 1.0 - fCos;
             return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
+        }
+        
+        vec4 GetDepth(float x, float y)
+        {
+            return texture2D(uTextureLUT, vec2(x, y));
         }
         
         void main(void)
@@ -56,47 +65,67 @@ SkyFromSpace_vs = {
             float C = fCameraHeight2 - fOuterRadius2;
             float fDet = max(0.0, B*B - 4.0 * C);
             float fNear = 0.5 * (-B - sqrt(fDet));
+            
+            vec4 v4LightDepth;
+            vec4 v4SampleDepth;
         
-        
-            // Calculate the ray's starting position, then calculate its scattering offset
+            // Calculate the ray's start and end positions in the atmosphere
             vec3 v3Start = v3CameraPos + v3Ray * fNear;
             fFar -= fNear;
-            float fStartAngle = dot(v3Ray, v3Start) / fOuterRadius; // divided by fOuterRadius to obtain the angle only, v3Start is not normalized
-            float fStartDepth = exp(-1.0 / fScaleDepth);
-            float fStartOffset = fStartDepth * scale(fStartAngle);
         
         
             // Initialize the scattering loop variables
-            // gl_FrontColor = vec4(0.0, 0.0, 0.0, 0.0);
+            vec3 v3RayleighSum = vec3(0.0, 0.0, 0.0);
+            vec3 v3MieSum = vec3(0.0, 0.0, 0.0);
+            
             float fSampleLength = fFar / fSamples;
             float fScaledLength = fSampleLength * fScale;
             vec3 v3SampleRay = v3Ray * fSampleLength;
+            
+            // Start at the center of the first sample ray, and loop through each of the others
             vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5;
+            vec3 v3Attenuation;
         
             // Now loop through the sample rays
-            vec3 v3FrontColor = vec3(0.0, 0.0, 0.0);
             for (int i=0; i<nSamples; i++)
             {
                 float fHeight = length(v3SamplePoint);
-                // fScaleOverScaleDepth = fScale / fScaleHeight, fDepth = exp((fScale * (fInnerRadius - fHeight))/fScaleHeight)
-                // (fScale * (fInnerRadius - fHeight)) will return the current height on negative value from 0.0 to 1.0, 0.0 bottom of atmosphere and 1.0 top of atmosphere
-                // fScale multiplication is used to scale the height to the 0.0 to 1.0 value
-                // Division by ScaleHeight implies this is the calculation of the density on the current atmosphere or depth on the current height of the atmosphere
-                float fDepth = exp(fScaleOverScaleDepth * (fInnerRadius - fHeight)); 
+                // Start by looking up the optical depth coming from the light source to this point
                 float fLightAngle = dot(v3LightPos, v3SamplePoint) / fHeight;
-                float fCameraAngle = dot(v3Ray, v3SamplePoint) / fHeight;
-                float fScatter = (fStartOffset + fDepth*(scale(fLightAngle) - scale(fCameraAngle)));
-                vec3 v3Attenuate = exp(-fScatter * (v3InvWavelength * fKr4PI + fKm4PI));
-                v3FrontColor += v3Attenuate * (fDepth * fScaledLength);
+                float fAltitude = (fHeight - fInnerRadius) * fScale; // How many times bigget than OutRadius
+                v4LightDepth = GetDepth(fAltitude, (0.5 - fLightAngle * 0.5));
+                
+                // If no light light reaches this part of the atmosphere, no light is scattered in at this point
+                if (v4LightDepth.x < DELTA)
+                    continue;
+                // Get the density at this point, along with the optical depth from the light source to this point
+                float fRayleighDensity = fScaledLength * v4LightDepth.x;
+                float fRayleighDepth = v4LightDepth.y;
+                float fMieDensity = fScaledLength * v4LightDepth.z;
+                float fMieDepth = v4LightDepth.w;
+                
+                // If the camera is above the point we're shading, we calculate the optical depth from the sample point to the camera
+                // Otherwise, we calculate the optical depth from the camera to the sample point
+                float fSampleAngle = dot(-v3Ray, v3SamplePoint) / fHeight;
+                v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
+                fRayleighDepth += v4SampleDepth.y;
+                fMieDepth += v4SampleDepth.w;
+                
+                // Now multiply the optical depth by the attenuation factor for the sample ray
+                fRayleighDepth *= fKr4PI;
+                fMieDepth *= fKm4PI;
+                
+                // Calculate the attenuation factor for the sample ray
+                v3Attenuation = exp(-vec3(fRayleighDepth) * v3InvWavelength - vec3(fMieDepth));
+                v3RayleighSum += vec3(fRayleighDensity) * v3Attenuation;
+                v3MieSum += vec3(fMieDensity) * v3Attenuation;
+                // Move the position to the center of the next sample ray
                 v3SamplePoint += v3SampleRay;
-        
-        
             }
-            debugColor = v3FrontColor * (v3InvWavelength * fKrESun);
         
             // Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
-            frontSecondaryColor.rgb = v3FrontColor * fKmESun; // Mie color, not dependent on wavelength
-            frontPrimaryColor.rgb = v3FrontColor * (v3InvWavelength * fKrESun); // Rayleigh color, dependent on wavelength
+            frontSecondaryColor.rgb = v3MieSum; // Mie color, not dependent on wavelength
+            frontPrimaryColor.rgb = v3RayleighSum; // Rayleigh color, dependent on wavelength
             gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
             v3Direction = v3CameraPos - v3Pos;
         }

@@ -27,7 +27,7 @@ var shaderProgramSep;
 
 function initGL(canvas) {
     try {
-        gl = canvas.getContext("experimental-webgl");
+        gl = canvas.getContext("webgl2");
         console.log(canvas.width);
         console.log(canvas.height);
         gl.viewportWidth = canvas.width;

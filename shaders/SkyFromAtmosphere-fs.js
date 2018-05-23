@@ -1,5 +1,5 @@
 SkyFromAtmosphere_fs = {
-    "data": `
+    "data": `#version 300 es
         precision mediump float;
 
         uniform vec3 v3LightPos;
@@ -8,11 +8,13 @@ SkyFromAtmosphere_fs = {
 
         uniform sampler2D uTextureDebug;
 
-        varying vec3 v3Direction;
-        varying vec3 frontColor;
-        varying vec3 frontSecondaryColor;
+        in vec3 v3Direction;
+        in vec3 frontColor;
+        in vec3 frontSecondaryColor;
 
-        varying vec3 debugColor;
+        in vec3 debugColor;
+
+        out vec4 outputColor;
 
         float GetMiePhase(float fCos, float fCos2, float g, float g2);
         float GetRayleighPhase(float fCos2);
@@ -20,14 +22,14 @@ SkyFromAtmosphere_fs = {
         void main(void)
         {
 
-            //gl_FragColor = vec4(0.98, 0.54, 0.035, 1.0); return;
+            //outputColor = vec4(0.98, 0.54, 0.035, 1.0); return;
             float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
             float fCos2 = fCos*fCos;
 
             vec3 col = GetRayleighPhase(fCos2) *  frontColor + GetMiePhase(fCos, fCos2, g, g2) * frontSecondaryColor;
 
-            gl_FragColor = vec4(col, 1.0); return;
-            gl_FragColor = vec4(debugColor, 1.0);
+            outputColor = vec4(col, 1.0); return;
+            outputColor = vec4(debugColor, 1.0);
         }
 
         float GetMiePhase(float fCos, float fCos2, float g, float g2)
