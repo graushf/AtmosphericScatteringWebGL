@@ -67,13 +67,7 @@ SkyFromAtmosphere_vs = {
             float fStartAngle = dot(v3Ray, v3Start) / fHeight;
             float fStartOffset = fDepth * scale(fStartAngle);
         
-            vec4 v4LightDepth;
-            vec4 v4SampleDepth;
-        
             // Initialize the scattering loop variables
-            //vec3 v3RayleighSum = vec3(0.0,0.0,0.0);
-            //vec3 v3MieSum = vec3(0.0,0.0,0.0);
-            //vec3 v3Attenuation;
             float fSampleLength = fFar / fSamples;
             float fScaledLength = fSampleLength * fScale;
             vec3 v3SampleRay = v3Ray * fSampleLength;

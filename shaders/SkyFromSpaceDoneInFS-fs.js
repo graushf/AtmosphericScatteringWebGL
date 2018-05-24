@@ -5,8 +5,6 @@ SkyFromSpaceLUT_fs = {
         uniform vec3 v3LightPos;
         uniform float g;
         uniform float g2;
-
-        uniform sampler2D uTextureLUT;
         
         // loop stuff
         uniform vec3 v3CameraPos;					// The camera's current position
@@ -33,7 +31,6 @@ SkyFromSpaceLUT_fs = {
         //const float fSamples = 2.0;
 
         float GetMiePhase(float fCos, float fCos2, float g, float g2);
-        vec4 GetDepth(float x, float y);
         float scale(float fCos);
 
         void main(void)
@@ -104,11 +101,6 @@ SkyFromSpaceLUT_fs = {
         float GetMiePhase(float fCos, float fCos2, float g, float g2)
         {
             return 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos2) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
-        }
-
-        vec4 GetDepth(float x, float y)
-        {
-            return texture(uTextureLUT, vec2(x, y));
         }
 
         float scale(float fCos)

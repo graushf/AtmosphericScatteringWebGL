@@ -1,4 +1,4 @@
-SkyFromSpaceLUT_fs = {
+SkyFromAtmosphereLUT_fs = {
     "data": `#version 300 es
         precision mediump float;
 
@@ -9,7 +9,8 @@ SkyFromSpaceLUT_fs = {
         uniform float g2;
 
         uniform sampler2D uTextureLUT;
-        
+
+        // loop stuff
         uniform vec3 v3CameraPos;					// The camera's current position
         uniform float fScaleDepth;					// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
         uniform float fScaleOverScaleDepth;			// fScale / fScaleDepth
@@ -20,16 +21,18 @@ SkyFromSpaceLUT_fs = {
         uniform float fKm4PI;						// Km * 4 * PI
         uniform float fKrESun;						// Kr * ESun
         uniform float fKmESun;						// Km * ESun
+        uniform float fCameraHeight;			// The camera's current height
         uniform float fCameraHeight2;				// fCameraHeight^2
         uniform float fOuterRadius2;				// fOuterRadius^2
         uniform float fOuterRadius;					// The outer (atmosphere) radius
 
         in vec3 v_vertexPos;
         in vec3 v3Direction;
-        
+
         out vec4 outputColor;
 
-        const int nSamples = 10;
+        const int nSamples = 2;
+        //const float fSamples = 2.0;
 
         float GetMiePhase(float fCos, float fCos2, float g, float g2);
         float GetRayleighPhase(float fCos2);
@@ -38,24 +41,18 @@ SkyFromSpaceLUT_fs = {
 
         void main(void)
         {
-            // Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
+            // Get the ray from the camera to the vertex and its length
             vec3 v3Pos = v_vertexPos.xyz;
             vec3 v3Ray = v3Pos - v3CameraPos;
             float fFar = length(v3Ray);
             v3Ray /= fFar;
 
-            // Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
-            float B = 2.0 * dot(v3CameraPos, v3Ray);
-            float C = fCameraHeight2 - fOuterRadius2;
-            float fDet = max(0.0, B*B - 4.0 * C);
-            float fNear = 0.5 * (-B - sqrt(fDet));
-
             vec4 v4LightDepth;
             vec4 v4SampleDepth;
 
             // Calculate the ray's starting position, then calculate its scattering offset
-            vec3 v3Start = v3CameraPos + v3Ray * fNear;
-            fFar -= fNear;
+            vec3 v3Start = v3CameraPos;
+            float fHeight = length(v3Start);
 
             // Initialize the scattering loop variables
             vec3 v3RayleighSum = vec3(0.0, 0.0, 0.0);
@@ -64,9 +61,17 @@ SkyFromSpaceLUT_fs = {
             float fSampleLength = fFar / float(nSamples);
             float fScaledLength = fSampleLength * fScale;
             vec3 v3SampleRay = v3Ray * fSampleLength;
-            vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5; // Start at the center of the first sample ray, and loop through each of the colors
+            vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5;
             vec3 v3Attenuation;
-            
+
+            vec3 debugColor;
+            if (length(v3CameraPos) > length(v3Pos)) {
+                debugColor = vec3(1.0, 0.0, 0.0);
+            } else {
+                debugColor = vec3(0.0, 1.0, 0.0);
+            }
+
+
             // Now loop through the sample rays
             for (int i=0; i<nSamples; i++)
             {
@@ -79,6 +84,7 @@ SkyFromSpaceLUT_fs = {
                 // If no light reaches this part of the atmosphere, no light is scattered in at this point
                 if (v4LightDepth.x < DELTA)
                     continue;
+                
 
                 // Get the density at this point, along with the optical depth from the light source to this point
                 float fRayleighDensity = fScaledLength * v4LightDepth.x;
@@ -110,19 +116,16 @@ SkyFromSpaceLUT_fs = {
             // Finally, scale the Mie and Rayleigh colors
             mieColor = v3MieSum * fKmESun;
             rayleighColor = v3RayleighSum * (v3InvWavelength * fKrESun);
-        
+
             float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
             float fCos2 = fCos*fCos;
-            float fMiePhase = GetMiePhase(fCos, fCos2, g, g2);
+
+            vec3 col = GetRayleighPhase(fCos2) * rayleighColor + GetMiePhase(fCos, fCos2, g, g2) * mieColor;
+            outputColor = vec4(col, 1.0);
             
-            outputColor.xyz = rayleighColor + fMiePhase * mieColor;
-            outputColor.w = 1.0;
-
-            //vec3 debugColor = rayleighColor;
-
-            //outputColor = vec4(debugColor, 1.0);
+            outputColor = vec4(debugColor, 1.0);
         }
-        
+
         float GetMiePhase(float fCos, float fCos2, float g, float g2)
         {
             return 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos2) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
@@ -133,15 +136,15 @@ SkyFromSpaceLUT_fs = {
             return 0.75 + 0.75 * fCos2;
         }
 
-        vec4 GetDepth(float x, float y)
-        {
-            return texture(uTextureLUT, vec2(x, y));
-        }
-
         float scale(float fCos)
         {
             float x = 1.0 - fCos;
             return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
+        }
+
+        vec4 GetDepth(float x, float y)
+        {
+            return texture(uTextureLUT, vec2(x, y));
         }
     `,
     "type": "x-shader/x-fragment"

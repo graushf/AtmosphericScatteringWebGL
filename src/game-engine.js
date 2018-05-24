@@ -43,6 +43,7 @@ var m_shSpaceFromAtmosphere;
 // LUT shaders
 var m_shSkyFromSpaceLUT;
 var m_shGroundFromSpaceLUT;
+var m_shSkyFromAtmosphereLUT;
 
 var m_pBuffer;
 
@@ -81,8 +82,8 @@ function initGameEngine() {
 
 	//initCameraSpace();
 	m_3DCamera = new Camera3D();
-	m_3DCamera.initCameraSpace();
-	//m_3DCamera.initCameraEarth();
+	//m_3DCamera.initCameraSpace();
+	m_3DCamera.initCameraEarth();
 
 	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
 	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
@@ -132,11 +133,14 @@ function initGameEngine() {
 	 //m_shGroundFromSpace =  createShaderByFilename(GroundFromSpace_vs, GroundFromSpace_fs);
 	 m_shGroundFromSpace =  createShaderByFilename(GroundFromSpaceDoneInFS_vs, GroundFromSpaceDoneInFS_fs);
 	 m_shSkyFromSpace = createShaderByFilename(SkyFromSpace_vs, SkyFromSpace_fs);
-	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
-	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
+	 //m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
+	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphereDoneInFS_vs, GroundFromAtmosphereDoneInFS_fs);
+	 //m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
+	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphereDoneInFS_vs, SkyFromAtmosphereDoneInFS_fs);
 	 if (renderWithLUT) {
 		m_shSkyFromSpaceLUT = createShaderByFilename(SkyFromSpaceLUT_vs, SkyFromSpaceLUT_fs);
 		m_shGroundFromSpaceLUT = createShaderByFilename(GroundFromSpaceLUT_vs, GroundFromSpaceLUT_fs);
+		m_shSkyFromAtmosphereLUT = createShaderByFilename(SkyFromAtmosphereLUT_vs, SkyFromAtmosphereLUT_fs);
 	 }
 
 	 // Looking at space
@@ -241,7 +245,11 @@ function renderPlanetAndAtmosphere()
 		cameraInSpace = false;
 		gl.disable(gl.CULL_FACE);
 		m_ESun = 20.0;
-		pSkyShader = m_shSkyFromAtmosphere;
+		if (renderWithLUT) {
+			pSkyShader = m_shSkyFromAtmosphereLUT;
+		} else {
+			pSkyShader = m_shSkyFromAtmosphere;
+		}
 	}
 
 	if (pSkyShader)
