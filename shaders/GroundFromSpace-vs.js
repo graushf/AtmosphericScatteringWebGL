@@ -56,7 +56,7 @@ var GroundFromSpace_vs = {
             float fDet = max(0.0, B*B - 4.0 * C);
             float fNear = 0.5 * (-B - sqrt(fDet));
         
-            v3Debug = v3Ray;
+            
         
             // Calculate the ray's starting position, then calculate its scattering offset
             vec3 v3Start = v3CameraPos + v3Ray * fNear;
@@ -93,6 +93,7 @@ var GroundFromSpace_vs = {
                 v3FrontColor += v3Attenuate * (fDepth * fScaledLength);
                 v3SamplePoint += v3SampleRay;
             }
+            v3Debug = v3Attenuate;
         
             primaryColor.rgb = v3FrontColor * (v3InvWavelength * fKrESun + fKmESun);
         

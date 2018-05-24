@@ -21,7 +21,6 @@ SkyFromAtmosphere_fs = {
 
         void main(void)
         {
-
             //outputColor = vec4(0.98, 0.54, 0.035, 1.0); return;
             float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
             float fCos2 = fCos*fCos;

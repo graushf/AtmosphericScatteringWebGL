@@ -3,10 +3,10 @@ SkyFromSpaceLUT_vs = {
         precision mediump float;
 
         in vec3 aVertexPosition;
-        in vec2 aTextureCoord;
+        //in vec2 aTextureCoord;
         
         out vec3 v3Direction;
-        out vec3 v_vertexPos;
+        out vec3 v_vertexPos; 
         
         uniform vec3 v3CameraPos;					// The camera's current position
 

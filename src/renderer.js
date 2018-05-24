@@ -4,8 +4,8 @@ var zRot = 0;
 
 var lastTime = 0;
 
-var uiSpeed = 10.0; // 70 for super quick solar orbit
-var enableRotation = false;
+var uiSpeed = 70.0; // 70 for super quick solar orbit
+var enableRotation = true;
 
 var elapsedFrame;
 

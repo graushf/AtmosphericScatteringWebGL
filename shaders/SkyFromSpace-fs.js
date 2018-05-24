@@ -24,7 +24,7 @@ SkyFromSpace_fs = {
             outputColor.xyz = frontPrimaryColor + fMiePhase * frontSecondaryColor;
             outputColor.a = 1.0;
 
-            //gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            //outputColor = vec4(debugColor, 1.0);
         }
         
         float GetMiePhase(float fCos, float fCos2, float g, float g2)

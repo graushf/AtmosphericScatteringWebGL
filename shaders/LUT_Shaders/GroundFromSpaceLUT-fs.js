@@ -1,15 +1,17 @@
-SkyFromSpaceLUT_fs = {
+var GroundFromSpaceLUT_fs = {
     "data": `#version 300 es
         precision mediump float;
-
+        
         #define DELTA 0.000001
+
+        uniform sampler2D uSamplerTexture;
 
         uniform vec3 v3LightPos;
         uniform float g;
         uniform float g2;
 
         uniform sampler2D uTextureLUT;
-        
+
         uniform vec3 v3CameraPos;					// The camera's current position
         uniform float fScaleDepth;					// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
         uniform float fScaleOverScaleDepth;			// fScale / fScaleDepth
@@ -26,13 +28,12 @@ SkyFromSpaceLUT_fs = {
 
         in vec3 v_vertexPos;
         in vec3 v3Direction;
-        
+        in vec2 vTextureCoord;
+
         out vec4 outputColor;
 
         const int nSamples = 10;
 
-        float GetMiePhase(float fCos, float fCos2, float g, float g2);
-        float GetRayleighPhase(float fCos2);
         vec4 GetDepth(float x, float y);
         float scale(float fCos);
 
@@ -53,20 +54,36 @@ SkyFromSpaceLUT_fs = {
             vec4 v4LightDepth;
             vec4 v4SampleDepth;
 
-            // Calculate the ray's starting position, then calculate its scattering offset
             vec3 v3Start = v3CameraPos + v3Ray * fNear;
             fFar -= fNear;
+
+            //float fAltitude = length(v_vertexPos.xyz) + DELTA;
+            //float fAltitude = (fInnerRadius - fOuterRadius);
+            //vec4 v4Depth = GetDepth(fAltitude, (0.5 - 0.0 * 0.5));
+            //float fRayleighDensity = fScaledLength * v4Depth.x;
+            //float fMieDensity =  fScaledLength * v4Depth.y;
+            //float fCameraAngle = dot(-v3Ray, v3Pos) / length(v3Pos);
+            //float fLightAngle = dot(v3LightPos, v3Pos) / length(v3Pos);
+            //vec4 _v4LightDepth = GetDepth(fAltitude, (0.5 - fLightAngle * 0.5));
+            //vec4 _v4SampleDepth = GetDepth(fAltitude, (0.5 - fCameraAngle * 0.5));
+            //float fCameraOffsetRayleigh = v4Depth.x * _v4SampleDepth.y;
+            //float fCameraOffsetMie =   v4Depth.z * _v4SampleDepth.w;
+            //float fTempDepthRayleigh = _v4LightDepth.y + _v4SampleDepth.y;
+            //float fTempDepthMie = _v4LightDepth.w + _v4SampleDepth.w;
+
 
             // Initialize the scattering loop variables
             vec3 v3RayleighSum = vec3(0.0, 0.0, 0.0);
             vec3 v3MieSum = vec3(0.0, 0.0, 0.0);
 
+            // Initialize the scattering loop variables
             float fSampleLength = fFar / float(nSamples);
             float fScaledLength = fSampleLength * fScale;
             vec3 v3SampleRay = v3Ray * fSampleLength;
             vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5; // Start at the center of the first sample ray, and loop through each of the colors
             vec3 v3Attenuation;
-            
+
+        
             // Now loop through the sample rays
             vec3 v3FrontColor = vec3(0.0, 0.0, 0.0);
             for (int i=0; i<nSamples; i++)
@@ -86,13 +103,26 @@ SkyFromSpaceLUT_fs = {
                 float fRayleighDepth = v4LightDepth.y;
                 float fMieDensity = fScaledLength * v4LightDepth.z;
                 float fMieDepth = v4LightDepth.w;
-
+                
                 // If the camera is above the point we're shading, we calculate the optical depth from the sample position to the camera
                 // Otherwise, we calculate the optical depth from the camera to the sample point
                 float fSampleAngle = dot(-v3Ray, v3SamplePoint) / fHeight;
                 v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
                 fRayleighDepth += v4SampleDepth.y;
                 fMieDepth += v4SampleDepth.w;
+
+                // Now multiply the optical depth by the attenuation factor for the sample ray
+                //fRayleighDepth *= fKr4PI;
+                //fMieDepth *= fKm4PI;
+
+                //float fScatterRayleigh = fRayleighDensity * fTempDepthRayleigh - fCameraOffsetRayleigh;
+                //float fScatterMie = fMieDensity * fTempDepthMie - fCameraOffsetMie;
+                //v3Attenuation = exp(-vec3(fScatterRayleigh) * v3InvWavelength * fKr4PI - vec3(fScatterMie) * fKm4PI);
+
+                //v3RayleighSum += vec3(fRayleighDensity) * v3Attenuation;
+                //v3MieSum += vec3(fMieDensity) * v3Attenuation;
+
+                //v3SamplePoint += v3SampleRay;
 
                 // Now multiply the optical depth by the attenuation factor for the sample ray
                 fRayleighDepth *= fKr4PI;
@@ -111,38 +141,29 @@ SkyFromSpaceLUT_fs = {
             // Finally, scale the Mie and Rayleigh colors
             mieColor = v3MieSum * fKmESun;
             rayleighColor = v3RayleighSum * (v3InvWavelength * fKrESun);
-        
-            float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
-            float fCos2 = fCos*fCos;
-            float fMiePhase = GetMiePhase(fCos, fCos2, g, g2);
+
+            vec2 uv = vec2(vTextureCoord.x, 1.0 - vTextureCoord.y);
+            //outputColor = vec4(vec3(primaryColor + 0.25 * secondaryColor).xyz, 1.0);
+            vec3 colorTexture = texture(uSamplerTexture, uv).xyz;
+            //vec3 colorTexture = vec3(0.0, 0.0, 0.0);
+            //outputColor.xyz = primaryColor + 1.2 * colorTexture * secondaryColor;
             
-            outputColor.xyz = rayleighColor + fMiePhase * mieColor;
+            vec3 v3SkyColor = rayleighColor + mieColor;
+
+            vec3 v3AttenuationColor = v3Attenuation;
+
+            //colorTexture = vec3(1.0, 0.0, 0.0);
+            outputColor.xyz = v3SkyColor + colorTexture * v3AttenuationColor;
+
             outputColor.w = 1.0;
 
-            //vec3 debugColor = rayleighColor;
-
-            //outputColor = vec4(debugColor, 1.0);
-        }
-        
-        float GetMiePhase(float fCos, float fCos2, float g, float g2)
-        {
-            return 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos2) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
-        }
-
-        float GetRayleighPhase(float fCos2)
-        {
-            return 0.75 + 0.75 * fCos2;
+            vec3 debugColor = v3SkyColor;
+            //outputColor.xyz = debugColor;
         }
 
         vec4 GetDepth(float x, float y)
         {
             return texture(uTextureLUT, vec2(x, y));
-        }
-
-        float scale(float fCos)
-        {
-            float x = 1.0 - fCos;
-            return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
         }
     `,
     "type": "x-shader/x-fragment"

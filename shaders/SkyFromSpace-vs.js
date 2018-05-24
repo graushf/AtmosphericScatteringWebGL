@@ -33,7 +33,7 @@ SkyFromSpace_vs = {
         out vec3 debugColor;
         
         const int nSamples = 2;
-        const float fSamples = 2.0;
+        //const float fSamples = 2.0;
         
         float scale(float fCos)
         {
@@ -49,7 +49,7 @@ SkyFromSpace_vs = {
             float fFar = length(v3Ray);
             v3Ray /= fFar;
         
-            debugColor = vec3(1.0, 0.0, 0.0);
+            
         
             // Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
             float B = 2.0 * dot(v3CameraPos, v3Ray);
@@ -68,7 +68,7 @@ SkyFromSpace_vs = {
         
             // Initialize the scattering loop variables
             // gl_FrontColor = vec4(0.0, 0.0, 0.0, 0.0);
-            float fSampleLength = fFar / fSamples;
+            float fSampleLength = fFar / float(nSamples);
             float fScaledLength = fSampleLength * fScale;
             vec3 v3SampleRay = v3Ray * fSampleLength;
             vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5;
@@ -89,10 +89,8 @@ SkyFromSpace_vs = {
                 vec3 v3Attenuate = exp(-fScatter * (v3InvWavelength * fKr4PI + fKm4PI));
                 v3FrontColor += v3Attenuate * (fDepth * fScaledLength);
                 v3SamplePoint += v3SampleRay;
-        
-        
             }
-            debugColor = v3FrontColor * (v3InvWavelength * fKrESun);
+            debugColor = aVertexPosition.xyz;
         
             // Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
             frontSecondaryColor.rgb = v3FrontColor * fKmESun; // Mie color, not dependent on wavelength

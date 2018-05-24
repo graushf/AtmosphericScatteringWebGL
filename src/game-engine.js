@@ -42,6 +42,7 @@ var m_shSpaceFromAtmosphere;
 
 // LUT shaders
 var m_shSkyFromSpaceLUT;
+var m_shGroundFromSpaceLUT;
 
 var m_pBuffer;
 
@@ -65,10 +66,11 @@ var exposureQuantity = 0.8;
 
 var debugFloatTexture;
 var opticalDepthLUT;
+var nSizeLut = 64;
 
 // config parameters
 var cameraInSpace = undefined;
-var renderWithLUT = false;
+var renderWithLUT = true;
 
 function initGameEngine() {
 
@@ -100,6 +102,7 @@ function initGameEngine() {
 
 	 m_fInnerRadius = 10.0;
 	 m_fOuterRadius = 10.25;
+	 //m_fOuterRadius = 12.25;
 	 m_fScale = 1 / (m_fOuterRadius - m_fInnerRadius);
 
 	 m_fWavelength[0] = 0.650;
@@ -112,8 +115,8 @@ function initGameEngine() {
 	 m_fRayleighScaleDepth = 0.25;
 	 //m_fMieScaleDepth = 0.1;
 	 m_fMieScaleDepth = 0.25;
-	 m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth);
-	 //createOpticalDepthLUT();
+	 m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth, nSizeLut, 50);
+	 createOpticalDepthLUT();
 
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
 	 screenFillingPlaneRenderData = initBuffersPlane();
@@ -126,12 +129,14 @@ function initGameEngine() {
 	 // CREATE SHADERS;
 	 console.log("Creating Shaders");
 	 m_shFullScrQuad = createShaderByFilename(FullScreenQuad_vs, FullScreenQuad_fs);
-	 m_shGroundFromSpace =  createShaderByFilename(GroundFromSpace_vs, GroundFromSpace_fs);
+	 //m_shGroundFromSpace =  createShaderByFilename(GroundFromSpace_vs, GroundFromSpace_fs);
+	 m_shGroundFromSpace =  createShaderByFilename(GroundFromSpaceDoneInFS_vs, GroundFromSpaceDoneInFS_fs);
 	 m_shSkyFromSpace = createShaderByFilename(SkyFromSpace_vs, SkyFromSpace_fs);
 	 m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphere_vs, GroundFromAtmosphere_fs);
 	 m_shSkyFromAtmosphere = createShaderByFilename(SkyFromAtmosphere_vs, SkyFromAtmosphere_fs);
 	 if (renderWithLUT) {
-		//m_shSkyFromSpaceLUT = createShaderByFilename(SkyFromSpaceLUT_vs, SkyFromSpaceLUT_fs);
+		m_shSkyFromSpaceLUT = createShaderByFilename(SkyFromSpaceLUT_vs, SkyFromSpaceLUT_fs);
+		m_shGroundFromSpaceLUT = createShaderByFilename(GroundFromSpaceLUT_vs, GroundFromSpaceLUT_fs);
 	 }
 
 	 // Looking at space
@@ -177,7 +182,11 @@ function renderPlanetAndAtmosphere()
 	{
 		cameraInSpace = true;
 	 	gl.frontFace(gl.CW);
-		pGroundShader = m_shGroundFromSpace;
+		if (renderWithLUT) {
+			pGroundShader = m_shGroundFromSpaceLUT;
+		} else {
+			pGroundShader = m_shGroundFromSpace;
+		}
 	} else {
 		cameraInSpace = false;
 		pGroundShader = m_shGroundFromAtmosphere;
@@ -204,7 +213,13 @@ function renderPlanetAndAtmosphere()
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "fScaleOverScaleDepth"), (1.0 / (m_fOuterRadius - m_fInnerRadius)) / m_fRayleighScaleDepth);
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g"), m_g);
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g2"), Math.pow(m_g, 2));
-		gl.uniform1f(gl.getUniformLocation(pGroundShader, "s2Test"), 0);
+
+		if (renderWithLUT) {
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
+			var a = gl.getUniformLocation(pGroundShader, "uTextureLUT");
+			gl.uniform1i(gl.getUniformLocation(pGroundShader, "uTextureLUT"), 1);
+		}
 	}
 
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
@@ -363,10 +378,10 @@ function tickGameEngine() {
     animate();
 }
 
-function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight, fMieScaleHeight)
+function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight, fMieScaleHeight, sizeLUT, nSamplesLUT)
 {
-	var nSize = 64;
-	var nSamples = 50;
+	var nSize = sizeLUT;
+	nSamples = nSamplesLUT;
 	var fScale = 1.0 / (fOuterRadius - fInnerRadius);
 
 	var m_nChannels = 4;
@@ -465,8 +480,7 @@ function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight
 }
 
 function createOpticalDepthLUT() {
-	var ext = gl.getExtension('OES_texture_float');
-	var ext2 = gl.getExtension('OES_texture_float_linear');
+	var ext = gl.getExtension('EXT_color_buffer_float');
 
 	//createDebugFloatTexture();
 
@@ -476,9 +490,9 @@ function createOpticalDepthLUT() {
 	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.FLOAT, debugFloatTextureBuffer);
 
 	const level = 0;
-	const internalFormat = gl.RGBA;
-	const width = 64;
-	const height = 64;
+	const internalFormat = gl.RGBA32F;
+	const width = nSizeLut;
+	const height = nSizeLut;
 	const border = 0;
 	const format = gl.RGBA;
 	const type = gl.FLOAT;
