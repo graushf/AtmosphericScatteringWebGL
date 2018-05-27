@@ -5,7 +5,7 @@ var zRot = 0;
 var lastTime = 0;
 
 var uiSpeed = 70.0; // 70 for super quick solar orbit
-var enableRotation = false;
+var enableRotation = true;
 
 var elapsedFrame;
 
@@ -208,9 +208,9 @@ function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, posV
 	gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, vMatrix);
 	gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, pMatrix);
 
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.uniform1i(shaderProgram.textureSamplerUniform, 0);
+	const textureUnit = 0;
+	texture.activateTexture(textureUnit);
+	gl.uniform1i(shaderProgram.textureSamplerUniform, textureUnit);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexPositionBuffer);
 	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereRenderData.sphereVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -229,6 +229,8 @@ function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, posV
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
 	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+	texture.deactivateTexture();
 }
 
 function renderPlane(planeRenderData, translatePos, scaleAmount, anglesRot, axisRot, color) {
@@ -613,9 +615,9 @@ function drawScreenFillingTexture(texture) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexTextureCoordBuffer);
 	gl.vertexAttribPointer(shaderProgramFramebuffer.textureCoordAttribute, planeRenderData.planeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0 , 0);
 
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.uniform1i(shaderProgramFramebuffer.samplerUniform, 0);
+	//gl.activeTexture(gl.TEXTURE0);
+	//gl.bindTexture(gl.TEXTURE_2D, texture);
+	//gl.uniform1i(shaderProgramFramebuffer.samplerUniform, 0);
 
 	// var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
 	// var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
@@ -684,10 +686,9 @@ function drawScreenFillingTextureHDR(shader, texture) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, planeRenderData.planeVertexTextureCoordBuffer);
 	gl.vertexAttribPointer(shader.textureCoordAttribute, planeRenderData.planeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0 , 0);
 
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.uniform1i(shader.samplerUniform, 0);
-
+	const textureUnit = 0;
+	texture.activateTexture(textureUnit);
+	gl.uniform1i(shader.samplerUniform, textureUnit);
 
 	mat4.identity(mMatrix);
 	var aux = mat4.create();
@@ -704,4 +705,5 @@ function drawScreenFillingTextureHDR(shader, texture) {
 	gl.drawElements(gl.TRIANGLES, planeRenderData.planeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
 	gl.enable(gl.DEPTH_TEST);
+	texture.deactivateTexture();
 }

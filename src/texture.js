@@ -44,3 +44,85 @@ function loadTexture(url) {
 
     return texture;
 }
+
+Texture = function()
+{
+    this._id;
+    this._type;
+}
+
+Texture.prototype = new Texture()
+
+Texture.prototype.createTexture = function(url) {
+    const buffer = new Uint8Array([0, 0, 255, 255]); //opaque blue
+    this.constructTexture(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, buffer, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.LINEAR, gl.LINEAR);
+    
+    const id = this._id;
+    const image = new Image();
+    image.onload = function() {
+        gl.bindTexture(gl.TEXTURE_2D, id);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    }
+    image.src = url;
+    if (this._type == undefined)
+        this._type = gl.TEXTURE_2D;
+}
+
+Texture.prototype.constructTexture = function(type, level, internalFormat, width, height, border, srcFormat, srcType, buffer, clampS, clampT, minFilter, magFilter, mipmap) {
+    if (this._id == undefined) {
+        this._id = gl.createTexture(type);
+    }
+    this._type = type;
+    gl.bindTexture(type, this._id);
+
+    if (internalFormat == gl.RGBA32F) {
+        var ext = gl.getExtension('EXT_color_buffer_float');
+    }
+
+    gl.texImage2D(type, level, internalFormat, width, height, border, srcFormat, srcType, buffer);
+
+    if (mipmap) {
+        gl.generateMipmap(type);
+    }
+    gl.texParameteri(type, gl.TEXTURE_WRAP_S, clampS);
+    gl.texParameteri(type, gl.TEXTURE_WRAP_T, clampT);
+    gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, magFilter);
+    
+    gl.bindTexture(this._type, null);
+}
+
+Texture.prototype.constructTextureImage = function(type, level, internalFormat, srcFormat, srcType, buffer, clampS, clampT, minFilter, magFilter) {
+    if (this._id == undefined) 
+        this._id = gl.createTexture(type);
+    this._type = type;
+    gl.bindTexture(type, this._id);
+
+    gl.texImage2D(type, level, internalFormat, srcFormat, srcType, buffer);
+
+    if (mipmap) 
+        gl.generateMipmap(type);
+    
+    gl.texParameteri(type, gl.TEXTURE_WRAP_S, clampS);
+    gl.texParameteri(type, gl.TEXTURE_WRAP_T, clampT);
+    gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, magFilter);
+
+    gl.bindTexture(this._type, null);
+}
+
+Texture.prototype.activateTexture = function(textureUnit) {
+    gl.activeTexture(gl.TEXTURE0 + textureUnit);
+    gl.bindTexture(this._type, this._id);
+}
+
+Texture.prototype.deactivateTexture = function() {
+    gl.bindTexture(this._type, null);
+}
+
+Texture.prototype.getId = function() {
+    if (this._id != undefined)
+        return this._id;
+
+    return null;
+}

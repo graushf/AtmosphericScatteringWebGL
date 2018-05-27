@@ -230,16 +230,7 @@ Camera3D.prototype.debugCamera = function() {
     //console.log("this.roll: "+this.key_roll);
     //console.log("viewMatrix: "+ this._viewMatrix);
     //console.log("position: "+this.Position);
-    if (this.key_pitch != 0.0) {
-        console.log("key_pitch: "+this.key_pitch);
-    }
-    if (this.key_yaw != 0.0) {
-        console.log("key_yaw: "+this.key_yaw);
-    }
-    if (this.key_roll != 0.0) {
-        console.log("key_roll: "+this.key_roll);
-        console.log("pos: "+this.Position);
-    }
+    console.log(this._Up);
     //if (this.Positio)
     //console.log("pos: "+this.Position);
 

@@ -82,14 +82,12 @@ var GroundFromSpaceDoneInFS_fs = {
             vec2 uv = vec2(vTextureCoord.x, 1.0 - vTextureCoord.y);
             //outputColor = vec4(vec3(primaryColor + 0.25 * secondaryColor).xyz, 1.0);
             vec3 colorTexture = texture(uSamplerTexture, uv).xyz;
-            //colorTexture = vec3(0.0, 0.0, 0.0);
+            //vec3 colorTexture = vec3(0.0, 0.0, 0.0);
             outputColor.xyz = primaryColor + 1.2 * colorTexture * secondaryColor;
             //colorTexture = vec3(1.0, 0.0, 0.0);
             //outputColor.xyz = primaryColor + colorTexture * secondaryColor;
 
             outputColor.w = 1.0;
-
-            //outputColor.xyz = colorTexture;
         }
 
         float scale(float fCos)

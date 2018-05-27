@@ -58,18 +58,20 @@ SkyFromAtmosphereDoneInFS_fs = {
 
             // Now loop through the sample rays
             vec3 v3FrontColor = vec3(0.0, 0.0, 0.0);
-            
+            float opticalDepthDebug;
+            vec3 debugColor;
             for (int i=0; i<nSamples; i++)
             {
                 float fHeight = length(v3SamplePoint);
                 float fDepth = exp(fScaleOverScaleDepth * (fInnerRadius - fHeight));
         
                 float fLightAngle = dot(v3LightPos, v3SamplePoint) / fHeight;
-                float fCameraAngle = dot(v3Ray, v3SamplePoint) / fHeight;
+                float fCameraAngle = dot(v3Ray, v3CameraPos) / length(v3CameraPos);
         
                 float fScatter = (fStartOffset + fDepth*(scale(fLightAngle) - scale(fCameraAngle)));
-        
                 vec3 v3Attenuate = exp(-fScatter * (v3InvWavelength * fKr4PI + fKm4PI));
+
+                debugColor = v3Attenuate;
         
                 v3FrontColor += v3Attenuate * (fDepth * fScaledLength);
         
@@ -84,10 +86,10 @@ SkyFromAtmosphereDoneInFS_fs = {
 
             vec3 col = GetRayleighPhase(fCos2) * rayleighColor + GetMiePhase(fCos, fCos2, g, g2) * mieColor;
 
-            vec3 debugColor = vec3(1.0, 0.0, 0.0);
+            //vec3 debugColor = vec3(opticalDepthDebug);
             
-            outputColor = vec4(col, 1.0); return;
-            outputColor = vec4(debugColor, 1.0);
+            outputColor = vec4(col, 1.0);
+            //outputColor = vec4(debugColor, 1.0);
         }
 
         float GetMiePhase(float fCos, float fCos2, float g, float g2)

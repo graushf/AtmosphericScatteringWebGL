@@ -64,10 +64,11 @@ var pSpaceShader;
 var pSunShader;
 
 var exposureQuantity = 0.8;
+exposureQuantity = 1.0;
 
 var debugFloatTexture;
 var opticalDepthLUT;
-var nSizeLut = 64;
+var nSizeLut = 256;
 
 // config parameters
 var cameraInSpace = undefined;
@@ -82,8 +83,8 @@ function initGameEngine() {
 
 	//initCameraSpace();
 	m_3DCamera = new Camera3D();
-	//m_3DCamera.initCameraSpace();
-	m_3DCamera.initCameraEarth();
+	m_3DCamera.initCameraSpace();
+	//m_3DCamera.initCameraEarth();
 
 	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
 	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
@@ -116,8 +117,11 @@ function initGameEngine() {
 	 m_fRayleighScaleDepth = 0.25;
 	 //m_fMieScaleDepth = 0.1;
 	 m_fMieScaleDepth = 0.25;
-	 m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth, nSizeLut, 50);
-	 createOpticalDepthLUT();
+	
+	 if (renderWithLUT) {
+		m_pbOpticalDepth = makeOpticalDepthBuffer(m_fInnerRadius, m_fOuterRadius, m_fRayleighScaleDepth, m_fMieScaleDepth, nSizeLut, 50);
+	 	createOpticalDepthLUT();
+	 }
 
 	 // GUSTAVO CREATE PLANET AND ATMOSPHERE GEOMETRY
 	 screenFillingPlaneRenderData = initBuffersPlane();
@@ -141,6 +145,7 @@ function initGameEngine() {
 		m_shSkyFromSpaceLUT = createShaderByFilename(SkyFromSpaceLUT_vs, SkyFromSpaceLUT_fs);
 		m_shGroundFromSpaceLUT = createShaderByFilename(GroundFromSpaceLUT_vs, GroundFromSpaceLUT_fs);
 		m_shSkyFromAtmosphereLUT = createShaderByFilename(SkyFromAtmosphereLUT_vs, SkyFromAtmosphereLUT_fs);
+		m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphereLUT_vs, GroundFromAtmosphereLUT_fs);
 	 }
 
 	 // Looking at space
@@ -151,15 +156,20 @@ function initGameEngine() {
 	 //m_shGizmos = createShaderByFilename(SimpleGeometryShader_vs, SimpleGeometryShader_fs);
 
 	 // INIT MOON PIXEL BUFFER
-	 textureMoon = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/moon_texture.jpg");
+	//textureMoon = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/moon_texture.jpg");
+	textureMoon = new Texture();
+	textureMoon.createTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/moon_texture.jpg");
 
 	 // INIT EARTH PIXEL BUFFER
-	 texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/BlueMarbleCloudy.png");
-	 textureDebug = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/nature.jpg");
+	 //texturePlanet = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/BlueMarbleCloudy.png");
+	 texturePlanet = new Texture();
+	 texturePlanet.createTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/BlueMarbleCloudy.png")
+	 //textureDebug = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/nature.jpg");
 
 	 // INIT SUN TEXTURES
-	 textureSun = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/8k_sun.jpg");
-
+	 //textureSun = loadTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/8k_sun.jpg");
+	 textureSun = new Texture();
+	 textureSun.createTexture("http://localhost/AtmosphericScatteringWebGL/resources/textures/8k_sun.jpg");
 
 	 initManagerUI();
 }
@@ -219,14 +229,17 @@ function renderPlanetAndAtmosphere()
 		gl.uniform1f(gl.getUniformLocation(pGroundShader, "g2"), Math.pow(m_g, 2));
 
 		if (renderWithLUT) {
-			gl.activeTexture(gl.TEXTURE1);
-			gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
+			gl.uniform3f(gl.getUniformLocation(pGroundShader, "v3CameraUp"), m_3DCamera._Up[0], m_3DCamera._Up[1], m_3DCamera._Up[2]);
+			const textureUnit = 1;
+			opticalDepthLUT.activateTexture(textureUnit);
 			var a = gl.getUniformLocation(pGroundShader, "uTextureLUT");
 			gl.uniform1i(gl.getUniformLocation(pGroundShader, "uTextureLUT"), 1);
 		}
 	}
 
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
+	if (renderWithLUT)
+		opticalDepthLUT.deactivateTexture();
  	gl.frontFace(gl.CCW);
 
 	//gl.disable(gl.DEPTH_TEST);
@@ -276,8 +289,9 @@ function renderPlanetAndAtmosphere()
 
 		// ## debug
 		if (renderWithLUT) {
-			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
+			gl.uniform3f(gl.getUniformLocation(pSkyShader, "v3CameraUp"), m_3DCamera._Up[0], m_3DCamera._Up[1], m_3DCamera._Up[2]);
+			const textureUnit = 0;
+			opticalDepthLUT.activateTexture(textureUnit);
 			gl.uniform1i(gl.getUniformLocation(pSkyShader, "uTextureLUT"), 0);
 		}
 	}
@@ -288,12 +302,16 @@ function renderPlanetAndAtmosphere()
 	gl.blendFunc(gl.ONE, gl.ONE);
 
 	// Render Sphere ATMOSPHERE
- 	renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
+	 renderAtmosphere(atmosphereGeomRenderData, pSkyShader);
+	if (renderWithLUT)
+		opticalDepthLUT.deactivateTexture();
 	gl.frontFace(gl.CW);
 	 gl.frontFace(gl.CCW);
 	 
 	gl.disable(gl.BLEND);
 	gl.enable(gl.DEPTH_TEST);
+
+	m_3DCamera.debugCamera();
 
  	updateUI(clock, auxAngle);
 }
@@ -367,7 +385,7 @@ function tickGameEngine() {
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
 	if (cameraInSpace != undefined && cameraInSpace) {
-		renderSun();
+		//renderSun();
 	}
 	//renderMoon();
     renderPlanetAndAtmosphere();
@@ -488,35 +506,9 @@ function makeOpticalDepthBuffer(fInnerRadius, fOuterRadius, fRayleighScaleHeight
 }
 
 function createOpticalDepthLUT() {
-	var ext = gl.getExtension('EXT_color_buffer_float');
-
-	//createDebugFloatTexture();
-
-	opticalDepthLUT = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, opticalDepthLUT);
-	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.viewportWidth, gl.viewportHeight, 0, gl.RGBA, gl.FLOAT, null);
-	//gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.FLOAT, debugFloatTextureBuffer);
-
-	const level = 0;
-	const internalFormat = gl.RGBA32F;
-	const width = nSizeLut;
-	const height = nSizeLut;
-	const border = 0;
-	const format = gl.RGBA;
-	const type = gl.FLOAT;
-
-	gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, m_pbOpticalDepth);
-	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 0);
-	//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 0);
-
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-	gl.bindTexture(gl.TEXTURE_2D, null);
+	opticalDepthLUT = new Texture();
+	opticalDepthLUT.constructTexture(gl.TEXTURE_2D, 0, gl.RGBA32F, nSizeLut, nSizeLut, 0, gl.RGBA, gl.FLOAT, m_pbOpticalDepth, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.NEAREST, gl.NEAREST, false);
 }
-
 
 function createDebugFloatTexture() {
 	var nSize = 64;

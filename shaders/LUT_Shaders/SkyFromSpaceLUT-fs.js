@@ -74,7 +74,7 @@ SkyFromSpaceLUT_fs = {
                 // Start by looking up the optical depth coming from the light source to this point
                 float fLightAngle = dot(v3LightPos, v3SamplePoint) / fHeight;
                 float fAltitude = (fHeight - fInnerRadius) * fScale; // How many times bigger than OutRadius
-                v4LightDepth = GetDepth(fAltitude, (0.5 - fLightAngle * 0.5));
+                v4LightDepth = GetDepth(fAltitude, 0.5 - fLightAngle*0.5);
 
                 // If no light reaches this part of the atmosphere, no light is scattered in at this point
                 if (v4LightDepth.x < DELTA)
@@ -89,7 +89,7 @@ SkyFromSpaceLUT_fs = {
                 // If the camera is above the point we're shading, we calculate the optical depth from the sample position to the camera
                 // Otherwise, we calculate the optical depth from the camera to the sample point
                 float fSampleAngle = dot(-v3Ray, v3SamplePoint) / fHeight;
-                v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
+                v4SampleDepth = GetDepth(fAltitude, 0.5 - fSampleAngle*0.5);
                 fRayleighDepth += v4SampleDepth.y;
                 fMieDepth += v4SampleDepth.w;
 
@@ -118,7 +118,7 @@ SkyFromSpaceLUT_fs = {
             outputColor.xyz = rayleighColor + fMiePhase * mieColor;
             outputColor.w = 1.0;
 
-            //vec3 debugColor = rayleighColor;
+            vec3 debugColor = vec3(0.0, 0.0, 1.0);
 
             //outputColor = vec4(debugColor, 1.0);
         }
