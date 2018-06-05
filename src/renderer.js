@@ -233,6 +233,83 @@ function renderSphereSurfaceAdvWithTexture(sphereRenderData, shaderProgram, posV
 	texture.deactivateTexture();
 }
 
+function renderSphereSurfaceAdvWithTextureAndNormal(sphereRenderData, shaderProgram, posVecTransform, scaleVecTransform, texture) {
+
+	gl.disableVertexAttribArray(m_shFullScrQuad.textureCoordAttribute);
+	var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	//console.log(a);
+	//console.log(b);
+	//console.log(c);
+	//console.log(d);
+
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+	shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+	gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+	shaderProgram.normalCoordAttribute = gl.getAttribLocation(shaderProgram, "aNormalCoord");
+	gl.enableVertexAttribArray(shaderProgram.normalCoordAttribute);
+
+	shaderProgram.modelMatrixUniform = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+	shaderProgram.viewMatrixUniform = gl.getUniformLocation(shaderProgram, "uViewMatrix");
+	shaderProgram.projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjectionMatrix");
+
+	shaderProgram.textureSamplerUniform = gl.getUniformLocation(shaderProgram, "uSamplerTexture");
+
+	var mMatrix = mat4.create();
+	var vMatrix = mat4.create();
+	var pMatrix = mat4.create();
+
+	mat4.identity(mMatrix);
+
+	var aux = mat4.create();
+	mat4.translate(mMatrix, mMatrix, [posVecTransform[0], posVecTransform[1], posVecTransform[2]]);
+	mat4.fromScaling(aux, [scaleVecTransform[0], scaleVecTransform[1], scaleVecTransform[2]]);
+	mat4.multiply(mMatrix, mMatrix, aux);
+	mat4.rotate(mMatrix, mMatrix, degToRad(earthAngle), [0, 1, 0]);
+
+	mat4.identity(vMatrix);
+	mat4.identity(pMatrix);
+
+	pMatrix = m_3DCamera.GetProjectionMatrix();
+	vMatrix = m_3DCamera.GetViewMatrix();
+
+	gl.uniformMatrix4fv(shaderProgram.modelMatrixUniform, false, mMatrix);
+	gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, vMatrix);
+	gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, pMatrix);
+
+	const textureUnit = 0;
+	texture.activateTexture(textureUnit);
+	gl.uniform1i(shaderProgram.textureSamplerUniform, textureUnit);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexPositionBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereRenderData.sphereVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexTextureCoordBuffer);
+	gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sphereRenderData.sphereVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, sphereRenderData.sphereVertexNormalBuffer);
+	gl.vertexAttribPointer(shaderProgram.normalCoordAttribute, sphereRenderData.sphereVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	var a = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	var b = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	var c = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	var d = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+	//console.log(a);
+	//console.log(b);
+	//console.log(c);
+	//console.log(d);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereRenderData.sphereVertexIndexBuffer);
+	gl.drawElements(gl.TRIANGLES, sphereRenderData.sphereVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+	texture.deactivateTexture();
+}
+
 function renderPlane(planeRenderData, translatePos, scaleAmount, anglesRot, axisRot, color) {
 	gl.useProgram(shaderProgram);
 
@@ -561,6 +638,10 @@ function renderCameraRotationGizmos() {
 
 function renderPlanet(planetGeomRenderData, shaderProgram, texture) {
 	renderSphereSurfaceAdvWithTexture(planetGeomRenderData, shaderProgram, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(1.0, 1.0, 1.0), texture);
+}
+
+function renderPlanetWithNormal(planetGeomRenderData, shaderProgram, texture) {
+	renderSphereSurfaceAdvWithTextureAndNormal(planetGeomRenderData, shaderProgram, vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(1.0, 1.0, 1.0), texture);
 }
 
 function renderAtmosphere(atmosphereGeomRenderData, shaderProgram) {

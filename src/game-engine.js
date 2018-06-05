@@ -44,6 +44,10 @@ var m_shSpaceFromAtmosphere;
 var m_shSkyFromSpaceLUT;
 var m_shGroundFromSpaceLUT;
 var m_shSkyFromAtmosphereLUT;
+var m_shGroundFromAtmosphereLUT;
+
+// Ocean shaders
+var m_shOceanFromAtmosphere;
 
 var m_pBuffer;
 
@@ -73,6 +77,7 @@ var nSizeLut = 64;
 // config parameters
 var cameraInSpace = undefined;
 var renderWithLUT = true;
+var renderOceanInSurface = true;
 
 function initGameEngine() {
 
@@ -145,7 +150,10 @@ function initGameEngine() {
 		m_shSkyFromSpaceLUT = createShaderByFilename(SkyFromSpaceLUT_vs, SkyFromSpaceLUT_fs);
 		m_shGroundFromSpaceLUT = createShaderByFilename(GroundFromSpaceLUT_vs, GroundFromSpaceLUT_fs);
 		m_shSkyFromAtmosphereLUT = createShaderByFilename(SkyFromAtmosphereLUT_vs, SkyFromAtmosphereLUT_fs);
-		m_shGroundFromAtmosphere = createShaderByFilename(GroundFromAtmosphereLUT_vs, GroundFromAtmosphereLUT_fs);
+		m_shGroundFromAtmosphereLUT = createShaderByFilename(GroundFromAtmosphereLUT_vs, GroundFromAtmosphereLUT_fs);
+	 }
+	 if (renderOceanInSurface) {
+		 m_shOceanFromAtmosphere = createShaderByFilename(OceanFromAtmosphere_vs, OceanFromAtmosphere_fs);
 	 }
 
 	 // Looking at space
@@ -220,7 +228,14 @@ function renderPlanetAndAtmosphere()
 		}
 	} else {
 		cameraInSpace = false;
-		pGroundShader = m_shGroundFromAtmosphere;
+		if (renderWithLUT) {
+			pGroundShader = m_shGroundFromAtmosphereLUT;
+		} else {
+			pGroundShader = m_shGroundFromAtmosphere;
+		}
+		if (renderOceanInSurface) {
+			pGroundShader = m_shOceanFromAtmosphere;
+		}
 	}
 
 	if (pGroundShader)
@@ -253,8 +268,13 @@ function renderPlanetAndAtmosphere()
 			gl.uniform1i(gl.getUniformLocation(pGroundShader, "uTextureLUT"), 1);
 		}
 	}
-
+	// Render the planet without normal attribute
 	renderPlanet(planetGeomRenderData, pGroundShader, texturePlanet);
+	if (renderOceanInSurface) {
+		renderPlanetWithNormal(planetGeomRenderData, pGroundShader, texturePlanet);
+	}
+	
+	
 	if (renderWithLUT)
 		opticalDepthLUT.deactivateTexture();
  	gl.frontFace(gl.CCW);
