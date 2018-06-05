@@ -30,6 +30,9 @@ Camera3D = function()
     this._Front = vec3.fromValues(0.0, 0.0, -1.0);
     this._Up = vec3.fromValues(0.0, 1.0, 0.0);
     this._Right = vec3.fromValues(1.0, 0.0, 0.0);
+
+    this._ReverseDirection = false;
+    this._insideAtmosphere = false;
 }
 
 Camera3D.prototype.ROTATE_SPEED = 1.0;
@@ -198,6 +201,11 @@ Camera3D.prototype.SetVelocity = function(velocity) {
 }
 
 Camera3D.prototype.Accelerate = function(vAccel, fSeconds, fResistance) {
+   /*  if (this._ReverseDirection == true) {
+        vAccel = vec3.fromValues(-1.0 * vAccel[0], -1.0 * vAccel[1], -1.0 * vAccel[2]);
+        this._ReverseDirection = false;
+    } */
+
     var aux = vec3.create();
     vec3.scale(aux, vAccel, fSeconds);
     vec3.add(this.vVelocity, this.vVelocity, aux);
@@ -224,22 +232,29 @@ Camera3D.prototype.GetVelocity = function() {
     return this.vVelocity;
 }
 
+Camera3D.prototype.ReverseVelocity = function() {
+    this.vVelocity = vec3.fromValues(-1.0 * this.vVelocity[0], -1.0 * this.vVelocity[1], -1.0 * this.vVelocity[2]);
+}
+
 Camera3D.prototype.debugCamera = function() {
     //console.log("this.pitch: "+this.key_pitch);
     //console.log("this.yaw: "+this.key_yaw);
     //console.log("this.roll: "+this.key_roll);
     //console.log("viewMatrix: "+ this._viewMatrix);
     //console.log("position: "+this.Position);
-    console.log(this._Up);
+    //console.log(this._Up);
     //if (this.Positio)
     //console.log("pos: "+this.Position);
+    //console.log(this.vVelocity);
 
+    console.log(this.THRUST);
 }
 
 Camera3D.prototype.initCameraSpace = function() {
     var pos = vec3.fromValues(0.0, 0.0, 50.0);
     this.CameraSetPos(pos, gl.viewportWidth, gl.viewportHeight);
     console.log(this);
+    this._insideAtmosphere = false;
 }
 
 Camera3D.prototype.initCameraEarth = function() {
@@ -253,4 +268,5 @@ Camera3D.prototype.initCameraEarth = function() {
     //this.SetPosition(pos);
     this.CameraSetPosAndRot(pos, 10.0, 120, 97.0,  gl.viewportWidth, gl.viewportHeight);
     //CameraSetPosAndRot = function(position, pitch, yaw, roll, WIDTH, HEIGHT)
+    this._insideAtmosphere = true;
 }

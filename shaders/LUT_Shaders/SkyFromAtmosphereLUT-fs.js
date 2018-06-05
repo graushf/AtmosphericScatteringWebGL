@@ -39,6 +39,7 @@ SkyFromAtmosphereLUT_fs = {
         float GetRayleighPhase(float fCos2);
         vec4 GetDepth(float x, float y);
         float scale(float fCos);
+        vec4 GetDepthLinearInterpolate(vec2 coordSample);
 
         void main(void)
         {
@@ -71,17 +72,19 @@ SkyFromAtmosphereLUT_fs = {
             bool cameraAboveVertex = dot(v3Ray, v3CameraUp)/(length(v3Ray)*length(v3CameraUp)) < 0.0;
             cameraAboveVertex = false;
             if (cameraAboveVertex) {
-                fHeightCam = length(v3CameraPos);
+                /* fHeightCam = length(v3CameraPos);
                 float fCamAngle = dot(-v3Ray, v3CameraPos) / fHeightCam;
                 float fAltitudeCam = (fHeightCam - fInnerRadius) * fScale; // How many times bigger
                 v4CameraDepth = GetDepth(fAltitudeCam, (0.5 - fCamAngle * 0.5));
-                debugColor = vec3(v4CameraDepth.y);
+                debugColor = vec3(v4CameraDepth.y); */
             } else {
                 fHeightCam = length(v3CameraPos);
                 float fCamAngle = dot(v3Ray, v3CameraPos) / fHeightCam;
                 float fAltitudeCam = (fHeightCam - fInnerRadius) * fScale; // How many times bigger
-                v4CameraDepth = GetDepth(fAltitudeCam, (0.5 - fCamAngle * 0.5));
-                debugColor = vec3(v4CameraDepth.y);
+                //v4CameraDepth = GetDepth(fAltitudeCam, (0.5 - fCamAngle * 0.5));
+
+                v4CameraDepth = GetDepthLinearInterpolate(vec2(fAltitudeCam, 0.5 - fCamAngle * 0.5));
+                //debugColor = vec3(v4CameraDepth.w);
             }
 
             float totalRayleighDepth;
@@ -95,7 +98,14 @@ SkyFromAtmosphereLUT_fs = {
                 // Start by looking up the optical depth coming from the light source to this point
                 float fLightAngle = dot(v3LightPos, v3SamplePoint) / fHeight;
                 float fAltitude = (fHeight - fInnerRadius) * fScale; // How many times bigger than OutRadius
-                v4LightDepth = GetDepth(fAltitude, (0.5 - fLightAngle * 0.5));
+                //v4LightDepth = GetDepth(fAltitude, (0.5 - fLightAngle * 0.5));
+                v4LightDepth = GetDepthLinearInterpolate(vec2(fAltitude, (0.5 - fLightAngle * 0.5)));
+                if (i == 0) {
+                    //debugColor = vec3(v4LightDepth.x);
+                    //debugColor = vec3(v4LightDepth.xyz);
+                }
+                    
+
 
                 // If no light reaches this part of the atmosphere, no light is scattered in at this point
                 if (v4LightDepth.x < DELTA)
@@ -111,19 +121,21 @@ SkyFromAtmosphereLUT_fs = {
                 // If the camera is above the point we're shading, we calculate the optical depth from the sample position to the camera
                 // Otherwise, we calculate the optical depth from the camera to the sample point
                 if (cameraAboveVertex) {
-                    float fSampleAngle = dot(-v3Ray, v3SamplePoint) / fHeightCam;
+                    /* float fSampleAngle = dot(-v3Ray, v3SamplePoint) / fHeightCam;
                     v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
                     float a = (v4SampleDepth.y - v4CameraDepth.y);
                     fRayleighDepth += a;
                     fMieDepth += (v4SampleDepth.w - v4CameraDepth.w);
                     
-                    //debugColor = vec3(1.0, 0.0, 0.0);
+                    //debugColor = vec3(1.0, 0.0, 0.0); */
                 } else {
                     float fSampleAngle = dot(v3Ray, v3CameraPos) / fHeightCam;
                     //float fSampleAngle = dot(v3Ray, v3SamplePoint) / fHeight;
                     //fSampleAngle = fCamAngle;
                     //float fSampleAngle = dot(v3Ray, v3SamplePoint) / fHeight;
-                    v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
+                    //v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
+                    v4SampleDepth = GetDepthLinearInterpolate(vec2(fAltitude, 0.5 - fSampleAngle * 0.5));
+
                     fRayleighDepth += (v4CameraDepth.y - v4SampleDepth.y);
                     fMieDepth += (v4CameraDepth.w - v4SampleDepth.w);
                     //debugColor = vec3(0.0, 1.0, 0.0);
@@ -173,6 +185,54 @@ SkyFromAtmosphereLUT_fs = {
         vec4 GetDepth(float x, float y)
         {
             return texture(uTextureLUT, vec2(x, y));
+        }
+
+        vec4 GetDepthLinearInterpolate(vec2 coordSample) 
+        {
+            ivec2 lutSize = textureSize(uTextureLUT, 0);
+
+            float _x = (coordSample.x * float(lutSize.x));
+            float _y = (coordSample.y * float(lutSize.y));
+
+            ivec2 coordTexel;
+            /* coordTexel.x = int(floor(_x));
+            coordTexel.y = int(floor(_y)); */
+           
+            coordTexel.x = int(floor(_x));
+            coordTexel.y = int(floor(_y));
+
+            coordTexel.x = clamp(coordTexel.x, 0, lutSize.x);
+            coordTexel.y = clamp(coordTexel.y, 0, lutSize.y);
+
+            vec4 sample0 = texelFetch(uTextureLUT, coordTexel, 0);
+            vec4 sample1 = texelFetch(uTextureLUT, coordTexel + ivec2(1, 0), 0);
+            vec4 sample2 = texelFetch(uTextureLUT, coordTexel + ivec2(0, 1), 0);
+            vec4 sample3 = texelFetch(uTextureLUT, coordTexel + ivec2(1, 1), 0);
+
+            /* vec4 c0 = mix(sample0, sample1, fract(_x - 0.5f));
+            vec4 c1 = mix(sample2, sample3, fract(_x - 0.5f));
+
+            vec4 c_f = mix(c0, c1, fract(_y - 0.5f)); */
+
+            vec4 c0 = mix(sample0, sample1, fract(_x));
+            vec4 c1 = mix(sample2, sample3, fract(_x));
+
+            vec4 c_f = mix(c0, c1, fract(_y));
+
+
+            //return GetDepth(coordSample.x, coordSample.y);
+
+            return c_f;
+
+            /* //return sample0;
+            if (coordSample.x < 0.0000000000001) {
+                //return vec4(0.0, 0.0, 1.0, 1.0);
+            }
+            //return sample0;
+            if (coordTexel.x < 0) {
+                return vec4(0.0, 0.0, 1.0, 1.0);
+            }
+            return vec4(coordTexel.x, 0.0, 0.0, 1.0); */
         }
     `,
     "type": "x-shader/x-fragment"

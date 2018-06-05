@@ -18,7 +18,7 @@ var lastY;
 var key_press;
 var key_code;
 
-var vAccel = vec3.create();;
+var vAccel = vec3.create();
 
 function calculateDeltaTime() {
 	var currentFrame = new Date().getTime();

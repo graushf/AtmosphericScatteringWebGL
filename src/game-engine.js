@@ -68,7 +68,7 @@ exposureQuantity = 1.0;
 
 var debugFloatTexture;
 var opticalDepthLUT;
-var nSizeLut = 256;
+var nSizeLut = 64;
 
 // config parameters
 var cameraInSpace = undefined;
@@ -83,8 +83,8 @@ function initGameEngine() {
 
 	//initCameraSpace();
 	m_3DCamera = new Camera3D();
-	m_3DCamera.initCameraSpace();
-	//m_3DCamera.initCameraEarth();
+	//m_3DCamera.initCameraSpace();
+	m_3DCamera.initCameraEarth();
 
 	m_vLight = vec3.fromValues(0.0, 0.0, -100.0);
 	m_vLight = vec3.fromValues(35.355, 0.0, 35.355);
@@ -192,6 +192,23 @@ function renderPlanetAndAtmosphere()
 	m_vLightDirection = vec3.create();
 	vec3.scale(m_vLightDirection, m_vLight, 1/length);
 
+	if (vec3.length(vCamera) <= m_fOuterRadius) {
+		m_3DCamera._insideAtmosphere = true;
+		m_3DCamera.THRUST = 0.01;
+		if (vec3.length(vCamera) <= (m_fOuterRadius - (m_fOuterRadius - m_fInnerRadius)/2.0)) {
+			m_3DCamera.THRUST = 0.005;
+		}
+		if (vec3.length(vCamera) <= (m_fOuterRadius - (m_fOuterRadius - m_fInnerRadius)/2.0)) {
+			m_3DCamera.THRUST = 0.0005;
+		}
+		if (vec3.length(vCamera) <= (m_fOuterRadius - (m_fOuterRadius - m_fInnerRadius)/2.0)) {
+			m_3DCamera.THRUST = 0.005;
+		}
+	} else {
+		m_3DCamera._insideAtmosphere = false;
+		m_3DCamera.THRUST = 0.5;
+	}
+
 	if (vec3.length(vCamera) >= m_fOuterRadius)
 	{
 		cameraInSpace = true;
@@ -295,6 +312,16 @@ function renderPlanetAndAtmosphere()
 			gl.uniform1i(gl.getUniformLocation(pSkyShader, "uTextureLUT"), 0);
 		}
 	}
+	m_3DCamera.ReverseVelocity();
+	if (vec3.length(vCamera) <= m_fInnerRadius) {
+		console.log("INSIDE THE PLANET");
+		m_3DCamera._ReverseDirection = true;
+		//m_3DCamera.reverseVelocity();
+	} else {
+		m_3DCamera._ReverseDirection = false;
+	}
+	m_3DCamera.debugCamera();
+
 	// TRY SETTING THE MOON AS LIGHT SOURCE
 
 	gl.frontFace(gl.CCW);
@@ -310,8 +337,6 @@ function renderPlanetAndAtmosphere()
 	 
 	gl.disable(gl.BLEND);
 	gl.enable(gl.DEPTH_TEST);
-
-	m_3DCamera.debugCamera();
 
  	updateUI(clock, auxAngle);
 }
