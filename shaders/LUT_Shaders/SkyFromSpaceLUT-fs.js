@@ -35,6 +35,10 @@ SkyFromSpaceLUT_fs = {
         float GetRayleighPhase(float fCos2);
         vec4 GetDepth(float x, float y);
         float scale(float fCos);
+        bool solveQuadratic(float a, float b, float c, out float x0, out float x1);
+
+        bool computeIntersections(vec3 v3Origin, vec3 v3CenterSphere, vec3 v3Direction, float sphereRadius, out float t0, out float t1);
+        float GetNearIntersection(vec3 v3Origin, vec3 v3Direction, float fSphereRadius2);
 
         void main(void)
         {
@@ -45,10 +49,12 @@ SkyFromSpaceLUT_fs = {
             v3Ray /= fFar;
 
             // Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
-            float B = 2.0 * dot(v3CameraPos, v3Ray);
+            /* float B = 2.0 * dot(v3CameraPos, v3Ray);
             float C = fCameraHeight2 - fOuterRadius2;
             float fDet = max(0.0, B*B - 4.0 * C);
-            float fNear = 0.5 * (-B - sqrt(fDet));
+            float fNear = 0.5 * (-B - sqrt(fDet)); */
+            
+            float fNear = GetNearIntersection(v3CameraPos, v3Ray, fOuterRadius2);
 
             vec4 v4LightDepth;
             vec4 v4SampleDepth;
@@ -118,7 +124,11 @@ SkyFromSpaceLUT_fs = {
             outputColor.xyz = rayleighColor + fMiePhase * mieColor;
             outputColor.w = 1.0;
 
-            vec3 debugColor = vec3(0.0, 0.0, 1.0);
+            vec3 debugColor = vec3(fNear);
+
+            /* if (!_boolInters) {
+                debugColor = vec3(1.0, 0.0, 0.0);
+            } */
 
             //outputColor = vec4(debugColor, 1.0);
         }
@@ -143,6 +153,83 @@ SkyFromSpaceLUT_fs = {
             float x = 1.0 - fCos;
             return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
         }
+
+        bool computeIntersections(vec3 v3Origin, vec3 v3CenterSphere, vec3 v3Direction, float sphereRadius, out float t0, out float t1) {
+            // analitic solution
+            vec3 L = v3Origin - v3CenterSphere;
+            float a = dot(v3Direction, L);
+            float b = 2.0 * dot(v3Direction, L);
+            float c = dot(L,L) - pow(sphereRadius, 2.0);
+            
+            float T0, T1;
+            bool aux = solveQuadratic(a, b, c, T0, T1);
+            if (!aux) {
+                return false;
+            }
+
+            if (T0 > T1) {
+                float A = T0;
+                float B = T1;
+                t0 = B;
+                t1 = A;
+            }
+            
+            if (T0 < 0.0) {
+                t0 = T1; // If t0 is negative, lets use t1 instead
+                if (T0 < 0.0) {
+                    return false;
+                }
+            }
+
+            if ((T0 > 0.0) && (T1 > 0.0)) {
+                if (T1 > T0) {
+                    t0 = T0;
+                    t1 = T1;
+                }
+            }
+
+            return true;
+        }
+
+        bool solveQuadratic(float a, float b, float c, out float x0, out float x1) {
+            float discr = b * b - 4.0 * a * c;
+            if (discr < 0.0) {
+                return false;
+            } else {
+                if (discr == 0.0) {
+                    x0 = -0.5 * b / a;
+                    x1 = -0.5 * b / a;
+                } else {
+                    float q;
+                    if (b > 0.0) {
+                        q = -0.5 * (b + sqrt(discr));
+                    } else {
+                        q = -0.5 * (b - sqrt(discr));
+                    }
+                    x0 = q / a;
+                    x1 = c / q;
+                }
+            }
+
+            if (x0 > x1) {
+                float aux = x0;
+                float aux2 = x1;
+                x0 = aux2;
+                x1 = aux;
+            }
+
+            return true;
+        }
+
+        float GetNearIntersection(vec3 v3Origin, vec3 v3Direction, float fSphereRadius2) {
+            // Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
+            float B = 2.0 * dot(v3Origin, v3Direction);
+            float C = pow(length(v3Origin), 2.0) - fSphereRadius2;
+            float fDet = max(0.0, B*B - 4.0 * C);
+            float fNear = 0.5 * (-B - sqrt(fDet));
+
+            return fNear;
+        }   
     `,
     "type": "x-shader/x-fragment"
 };

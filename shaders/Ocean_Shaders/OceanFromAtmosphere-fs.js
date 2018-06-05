@@ -31,11 +31,56 @@ var OceanFromAtmosphere_fs = {
 
         vec4 GetDepth(float x, float y);
 
+        void GetSkyColorParameters(vec3 orig, vec3 dest, out vec3 _v3RayleighSum, out vec3 _v3MieSum, out vec3 _v3Attenuation);
+
+        float GetNearIntersection(vec3 v3Origin, vec3 v3Direction, float fSphereRadius2);
+
         void main(void)
         {
+            vec3 vRayleighSum;
+            vec3 vMieSum;
+            vec3 vAttenuation;
+
+            //GetSkyColorParameters(v3CameraPos, v_vertexPos.xyz, vRayleighSum, vMieSum, vAttenuation);
+
+            float fIntersectionAtmosphereDistance = GetNearIntersection(v_vertexPos.xyz, normalize(vNormalCoord), fOuterRadius2);
+            vec3 intersectionPos = v_vertexPos.xyz + normalize(vNormalCoord) * fIntersectionAtmosphereDistance; 
+
+            GetSkyColorParameters(v_vertexPos.xyz, intersectionPos, vRayleighSum, vMieSum, vAttenuation);
+
+            vec3 mieColor, rayleighColor;
+            // Finally, scale the Mie and Rayleigh colors
+            mieColor = vMieSum * fKmESun;
+            rayleighColor = vRayleighSum * (v3InvWavelength * fKrESun);
+
+            vec3 v3SkyColor = rayleighColor + mieColor;
+            vec3 v3AttenuationColor = vAttenuation;
+            
+            vec2 uv = vec2(vTextureCoord.x, 1.0 - vTextureCoord.y);
+            vec3 colorTexture = texture(uSamplerTexture, uv).xyz;
+            colorTexture = vec3(1.0, 0.0, 0.0);
+            //outputColor.xyz = v3SkyColor + colorTexture * v3AttenuationColor;
+            outputColor.xyz = v3SkyColor * v3AttenuationColor;
+            //outputColor.xyz = v3SkyColor + 0.25 * v3AttenuationColor;
+
+            outputColor.w = 1.0;
+
+            vec3 debugColor = v3SkyColor;
+
+            
+            outputColor.xyz = debugColor;
+        }
+
+        vec4 GetDepth(float x, float y)
+        {
+            return texture(uTextureLUT, vec2(x, y));
+        }
+
+        void GetSkyColorParameters(vec3 orig, vec3 dest, out vec3 _v3RayleighSum, out vec3 _v3MieSum, out vec3 _v3Attenuation) {
+
             // Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
-            vec3 v3Pos = v_vertexPos.xyz;
-            vec3 v3Ray = v3Pos - v3CameraPos;
+            vec3 v3Pos = dest;
+            vec3 v3Ray = v3Pos - orig;
             float fFar = length(v3Ray);
             v3Ray /= fFar;
 
@@ -43,7 +88,7 @@ var OceanFromAtmosphere_fs = {
             vec4 v4SampleDepth;
 
             // Calculate the ray's starting position, then calculate its scattering offset
-            vec3 v3Start = v3CameraPos;
+            vec3 v3Start = orig;
 
             // Initialize the scattering loop variables
             vec3 v3RayleighSum = vec3(0.0, 0.0, 0.0);
@@ -54,13 +99,10 @@ var OceanFromAtmosphere_fs = {
             vec3 v3SampleRay = v3Ray * fSampleLength;
             vec3 v3SamplePoint = v3Start + v3SampleRay * 0.5;
 
-            float fHeightCam = length(v3CameraPos);
-            float fCamAngle = dot(-v3Ray, v3CameraPos) / fHeightCam;
+            float fHeightCam = length(orig);
+            float fCamAngle = dot(-v3Ray, orig) / fHeightCam;
             float fAltitudeCam = (fHeightCam - fInnerRadius) * fScale; // How many times bigger
             vec4 v4CameraDepth = GetDepth(fAltitudeCam, (0.5 - fCamAngle * 0.5));
-
-            float totalRayleighDepth;
-            float totalMieDepth;
 
             vec3 v3Attenuation;
             // Now loop through the sample rays
@@ -83,14 +125,10 @@ var OceanFromAtmosphere_fs = {
 
                 // If the camera is above the point we're shading, we calculate the optical depth from the sample position to the camera
                 // Otherwise, we calculate the optical depth from the camera to the sample point
-                float fSampleAngle = dot(-v3Ray, v3CameraPos) / fHeightCam;
+                float fSampleAngle = dot(-v3Ray, orig) / fHeightCam;
                 v4SampleDepth = GetDepth(fAltitude, (0.5 - fSampleAngle * 0.5));
                 fRayleighDepth += (v4SampleDepth.y - v4CameraDepth.y);
                 fMieDepth += (v4SampleDepth.w - v4CameraDepth.w);
-
-                totalRayleighDepth = fRayleighDepth;
-                totalMieDepth = fMieDepth;
-
 
                 // Now multiply the optical depth by the attenuation factor for the sample ray
                 fRayleighDepth *= fKr4PI;
@@ -105,32 +143,20 @@ var OceanFromAtmosphere_fs = {
                 v3SamplePoint += v3SampleRay;
             }
 
-            vec3 mieColor, rayleighColor;
-            // Finally, scale the Mie and Rayleigh colors
-            mieColor = v3MieSum * fKmESun;
-            rayleighColor = v3RayleighSum * (v3InvWavelength * fKrESun);
-
-            vec3 v3SkyColor = rayleighColor + mieColor;
-            vec3 v3AttenuationColor = v3Attenuation;
-            
-            vec2 uv = vec2(vTextureCoord.x, 1.0 - vTextureCoord.y);
-            vec3 colorTexture = texture(uSamplerTexture, uv).xyz;
-            colorTexture = vec3(1.0, 0.0, 0.0);
-            outputColor.xyz = v3SkyColor + colorTexture * v3AttenuationColor;
-            //outputColor.xyz = v3SkyColor + 0.25 * v3AttenuationColor;
-
-            outputColor.w = 1.0;
-
-            //vec3 debugColor = vec3(totalRayleighDepth);
-            vec3 debugColor = vNormalCoord;
-
-            outputColor.xyz = debugColor;
+            _v3RayleighSum = v3RayleighSum;
+            _v3MieSum = v3MieSum;
+            _v3Attenuation = v3Attenuation;
         }
 
-        vec4 GetDepth(float x, float y)
-        {
-            return texture(uTextureLUT, vec2(x, y));
-        }
+        float GetNearIntersection(vec3 v3Origin, vec3 v3Direction, float fSphereRadius2) {
+            // Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
+            float B = 2.0 * dot(v3Origin, v3Direction);
+            float C = pow(length(v3Origin), 2.0) - fSphereRadius2;
+            float fDet = max(0.0, B*B - 4.0 * C);
+            float fNear = 0.5 * (-B - sqrt(fDet));
+
+            return fNear;
+        }   
     `,
     "type": "x-shader/x-fragment"
 };
